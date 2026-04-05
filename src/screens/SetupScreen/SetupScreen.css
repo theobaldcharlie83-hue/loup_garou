@@ -1,0 +1,411 @@
+/* ============================================================
+   SetupScreen — Écran 1 : Configuration du Village
+   ============================================================ */
+
+/* ─── Layout principal ─────────────────────────────────────── */
+.setup-screen {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.setup-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  background: var(--color-surface-container-low);
+  border-right: 1px solid rgba(71, 70, 78, 0.15);
+  overflow: hidden; /* Sidebar is fixed, its inner wrap scroll */
+}
+
+/* Wrapper scrollable pour les blocs de joueurs */
+.setup-sidebar__scrollable-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden; /* Les enfants gèrent leur propre scroll */
+  padding-right: var(--space-1);
+}
+
+/* En-tête */
+.setup-sidebar__header {
+  flex-shrink: 0;
+}
+.setup-sidebar__title {
+  font-family: var(--font-headline);
+  font-size: var(--text-headline-lg);
+  font-weight: 700;
+  color: var(--color-secondary);
+  line-height: 1.15;
+}
+.setup-sidebar__subtitle {
+  margin-top: var(--space-1);
+  font-size: var(--text-body-md);
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+
+/* ─── Bloc de compteur ──────────────────────────────────────── */
+.player-block {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: box-shadow var(--anim-normal);
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0; /* Permet la réduction au-delà du contenu */
+}
+.player-block.has-players {
+  box-shadow: var(--shadow-ambient);
+}
+
+.player-block__header {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-bottom: 1px solid rgba(71, 70, 78, 0.1);
+  flex-shrink: 0;
+}
+.player-block__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.player-block__label {
+  font-size: var(--text-title-md);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.player-block__sublabel {
+  font-size: var(--text-label-md);
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+.player-block__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.counter-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-outline-variant);
+  cursor: pointer;
+  background: var(--color-surface-container-highest);
+  color: var(--color-on-surface);
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--anim-fast), transform var(--anim-fast), border-color var(--anim-fast);
+  flex-shrink: 0;
+}
+.counter-btn:hover:not(:disabled) {
+  background: var(--color-surface-bright);
+  border-color: var(--color-primary);
+  transform: scale(1.1);
+}
+.counter-btn:active:not(:disabled) { transform: scale(0.9); }
+.counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.counter-value {
+  font-family: var(--font-headline);
+  font-size: var(--text-headline-md);
+  font-weight: 700;
+  color: var(--color-secondary);
+  min-width: 2rem;
+  text-align: center;
+  line-height: 1;
+}
+
+/* ─── Liste des noms ────────────────────────────────────────── */
+.player-names-list {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  animation: fadeIn var(--anim-normal) ease-out;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* Personnalisation fine de la scrollbar pour ces listes */
+.player-names-list::-webkit-scrollbar {
+  width: 6px;
+}
+.player-names-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.player-names-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+.player-names-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.name-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.name-input-label {
+  font-size: var(--text-label-md);
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+  padding-left: var(--space-1);
+}
+
+.name-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  padding-right: 2.5rem; /* Espace pour la croix */
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(71, 70, 78, 0.15); /* ghost border */
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  outline: none;
+  transition:
+    border-color var(--anim-fast),
+    box-shadow   var(--anim-fast),
+    background   var(--anim-fast);
+  min-height: 36px;
+}
+.name-input::placeholder { color: var(--color-on-surface-variant); opacity: 0.5; }
+.name-input:focus {
+  border-color: rgba(232, 180, 249, 0.5);
+  box-shadow: 0 0 0 2px rgba(232, 180, 249, 0.12);
+  background: var(--color-surface-container-low);
+}
+/* Peluche : couleur accentuée secondaire */
+.name-input.plush:focus {
+  border-color: rgba(255, 184, 107, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 184, 107, 0.12);
+}
+
+.input-with-clear {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-clear-input {
+  position: absolute;
+  right: var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--color-error);
+  font-size: 0.75rem;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  opacity: 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--anim-fast), background var(--anim-fast);
+}
+
+.btn-clear-input:hover {
+  opacity: 1;
+  background: rgba(255, 84, 73, 0.15); /* light red background */
+}
+
+/* ─── Résumé & CTA ──────────────────────────────────────────── */
+.setup-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  padding-top: var(--space-2);
+}
+
+.setup-summary {
+  background: var(--color-surface-container-highest);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-md);
+  color: var(--color-on-surface-variant);
+  text-align: center;
+  line-height: 1.5;
+}
+.setup-summary strong { color: var(--color-secondary); font-weight: 700; }
+.setup-summary .mismatch {
+  color: var(--color-error);
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-label-md);
+  font-weight: 600;
+}
+.setup-summary .ready {
+  color: var(--color-tertiary);
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-label-md);
+  font-weight: 600;
+}
+
+.btn-primary.setup-cta {
+  width: 100%;
+  padding: var(--space-4);
+  font-size: var(--text-title-md);
+  border-radius: var(--radius-xl);
+  justify-content: center;
+}
+.btn-primary.setup-cta:disabled {
+  animation: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ─── Zone droite : grille des rôles ───────────────────────── */
+.setup-roles-zone {
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.roles-zone-header {
+  flex-shrink: 0;
+}
+.roles-zone-header h2 {
+  font-family: var(--font-headline);
+  font-size: var(--text-headline-md);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+.roles-zone-header p {
+  font-size: var(--text-body-md);
+  color: var(--color-on-surface-variant);
+  margin-top: var(--space-1);
+}
+
+/* Titres de sections d'équipe */
+.roles-section-title {
+  font-family: var(--font-headline);
+  font-size: var(--text-title-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(71, 70, 78, 0.12);
+}
+.roles-section-title.team-loup      { color: var(--color-error); }
+.roles-section-title.team-village   { color: var(--color-secondary); }
+.roles-section-title.team-ambigu    { color: var(--color-primary); }
+.roles-section-title.team-solitaire { color: var(--color-tertiary); }
+
+/* Grille responsive */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ─── Carte rôle ────────────────────────────────────────────── */
+.role-card {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  transition:
+    background   var(--anim-fast),
+    transform    var(--anim-fast),
+    box-shadow   var(--anim-fast);
+  position: relative;
+}
+.role-card.selected {
+  background: var(--color-surface-container-highest);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-ambient);
+}
+
+.role-card__icon {
+  font-size: 2rem;
+  line-height: 1;
+  user-select: none;
+}
+.role-card__name {
+  font-size: var(--text-label-lg);
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-on-surface);
+  line-height: 1.3;
+  min-height: 2.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.role-card__max {
+  font-size: var(--text-label-md);
+  color: var(--color-on-surface-variant);
+}
+
+/* Sélecteur quantité */
+.role-card__qty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--anim-fast), transform var(--anim-fast), border-color var(--anim-fast);
+}
+.qty-btn:hover:not(:disabled) {
+  background: var(--color-surface-bright);
+  border-color: var(--color-primary);
+}
+.qty-btn:active:not(:disabled) { transform: scale(0.88); }
+.qty-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.qty-value {
+  font-family: var(--font-headline);
+  font-size: var(--text-title-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+  min-width: 1.4rem;
+  text-align: center;
+  line-height: 1;
+}
+.qty-value.active { color: var(--color-tertiary); }

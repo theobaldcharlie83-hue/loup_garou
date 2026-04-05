@@ -1,0 +1,344 @@
+/* ============================================================
+   LE GRIMOIRE DU VILLAGE — DESIGN SYSTEM GLOBAL
+   Direction artistique : "The Living Chronicle" (Stitch)
+   ============================================================ */
+
+/* ---------- 1. RESET & BASE ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* fullscreen landscape, pas de scroll global */
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- 2. TOKENS DE COULEUR (extrait du design Stitch) ---------- */
+:root {
+  /* Surfaces */
+  --color-surface:               #0e0e35;
+  --color-surface-dim:           #0e0e35;
+  --color-surface-bright:        #34355d;
+  --color-surface-container-lowest: #08082f;
+  --color-surface-container-low:    #16173d;
+  --color-surface-container:        #1a1b41;
+  --color-surface-container-high:   #25264c;
+  --color-surface-container-highest: #303158;
+
+  /* Primary — Violet Grimoire */
+  --color-primary:              #e8b4f9;
+  --color-on-primary:           #471e58;
+  --color-primary-container:    #340a46;
+  --color-on-primary-container: #a476b5;
+
+  /* Secondary — Ocre / Ambre (actions jour) */
+  --color-secondary:            #ffb86b;
+  --color-on-secondary:         #492900;
+  --color-secondary-container:  #ed9000;
+
+  /* Tertiary — Or victoire */
+  --color-tertiary:             #e9c400;
+  --color-on-tertiary:          #3a3000;
+  --color-tertiary-container:   #c9a900;
+
+  /* Textes */
+  --color-on-surface:           #e1e0ff;
+  --color-on-surface-variant:   #c8c5cf;
+  --color-on-background:        #e1e0ff;
+
+  /* Erreur */
+  --color-error:                #ffb4ab;
+  --color-error-container:      #93000a;
+
+  /* Contours */
+  --color-outline:              #918f99;
+  --color-outline-variant:      #47464e;
+
+  /* Inverses */
+  --color-inverse-surface:      #e1e0ff;
+  --color-inverse-on-surface:   #2b2d53;
+  --color-inverse-primary:      #794d8a;
+  --color-surface-tint:         #e8b4f9;
+}
+
+/* ---------- 3. TYPOGRAPHIE ---------- */
+:root {
+  /* Famille */
+  --font-headline: 'Newsreader', Georgia, serif;
+  --font-body:     'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Échelle narrative (Newsreader) */
+  --text-display-lg: clamp(2rem, 4vw, 3.5rem);
+  --text-display-md: clamp(1.5rem, 3vw, 2.5rem);
+  --text-headline-lg: clamp(1.25rem, 2.5vw, 2rem);
+  --text-headline-md: clamp(1rem, 2vw, 1.5rem);
+
+  /* Échelle interface (Plus Jakarta Sans) */
+  --text-title-lg:   clamp(1rem, 1.8vw, 1.25rem);
+  --text-title-md:   clamp(0.875rem, 1.4vw, 1rem);
+  --text-body-lg:    clamp(0.875rem, 1.2vw, 1rem);
+  --text-body-md:    clamp(0.75rem, 1vw, 0.875rem);
+  --text-label-lg:   clamp(0.75rem, 1vw, 0.875rem);
+  --text-label-md:   clamp(0.625rem, 0.9vw, 0.75rem);
+}
+
+/* ---------- 4. ESPACEMENT (rythme 8dp) ---------- */
+:root {
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+}
+
+/* ---------- 5. ARRONDIS ---------- */
+:root {
+  --radius-sm:   0.25rem;   /* 4px */
+  --radius-md:   0.5rem;    /* 8px */
+  --radius-lg:   1rem;      /* 16px */
+  --radius-xl:   1.5rem;    /* 24px */
+  --radius-full: 9999px;
+}
+
+/* ---------- 6. OMBRES & GLASSMORPHISM ---------- */
+:root {
+  --shadow-ambient:  0 8px 32px rgba(14, 14, 53, 0.12);
+  --shadow-floating: 0 16px 48px rgba(14, 14, 53, 0.18);
+  --glow-primary:    0 0 20px rgba(232, 180, 249, 0.2);
+  --glow-secondary:  0 0 16px rgba(255, 184, 107, 0.25);
+  --glow-tertiary:   0 0 24px rgba(233, 196, 0, 0.3);
+  --backdrop-blur:   blur(14px);
+}
+
+/* ---------- 7. ANIMATIONS ---------- */
+:root {
+  --anim-fast:    150ms ease-out;
+  --anim-normal:  250ms ease-out;
+  --anim-slow:    400ms ease-out;
+  --anim-mist:    300ms ease-in-out; /* tooltip / overlay */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseMagic {
+  0%, 100% { box-shadow: var(--glow-primary); }
+  50%       { box-shadow: 0 0 32px rgba(232, 180, 249, 0.45); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes floatUp {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)  scale(1); }
+}
+
+@keyframes nightPulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
+}
+
+/* ---------- 8. LAYOUT PRINCIPAL PAYSAGE ---------- */
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  position: relative;
+}
+
+/* Bruit de texture subtil (ambiance "parchemin") */
+.app-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ---------- 9. COMPOSANTS GLOBAUX ---------- */
+
+/* --- Bouton Principal (gradient magique) --- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
+  color: var(--color-on-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-title-md);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform var(--anim-fast), box-shadow var(--anim-fast), opacity var(--anim-fast);
+  animation: pulseMagic 3s ease-in-out infinite;
+  min-height: 44px;
+}
+.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 0 28px rgba(232, 180, 249, 0.5); }
+.btn-primary:active { transform: scale(0.97); opacity: 0.85; }
+
+/* --- Bouton Secondaire (actions Jour) --- */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-title-md);
+  font-weight: 600;
+  transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+  min-height: 44px;
+}
+.btn-secondary:hover  { transform: translateY(-2px); box-shadow: var(--glow-secondary); }
+.btn-secondary:active { transform: scale(0.97); }
+
+/* --- Bouton Tertiaire (discret) --- */
+.btn-tertiary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-title-md);
+  font-weight: 600;
+  transition: background var(--anim-fast), opacity var(--anim-fast);
+  min-height: 44px;
+}
+.btn-tertiary:hover  { background: rgba(232, 180, 249, 0.08); }
+.btn-tertiary:active { opacity: 0.7; }
+
+/* --- Carte Glassmorphique --- */
+.card-glass {
+  background: rgba(52, 53, 93, 0.6);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(71, 70, 78, 0.15);
+  box-shadow: var(--shadow-ambient);
+  padding: var(--space-6);
+}
+
+/* --- Carte Surface --- */
+.card-surface {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  transition: background var(--anim-fast);
+}
+.card-surface:hover { background: var(--color-surface-container-high); }
+
+/* --- Icônes Material (standardisées) --- */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+  font-size: 1.25em;
+  vertical-align: middle;
+}
+.icon-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* --- Badge de statut --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: var(--text-label-md);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.badge-night { background: var(--color-primary-container); color: var(--color-primary); }
+.badge-day   { background: var(--color-secondary);         color: var(--color-on-secondary); }
+.badge-wolf  { background: var(--color-error-container);   color: var(--color-error); }
+
+/* --- Chip de rôle --- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: var(--text-label-md);
+  font-weight: 600;
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+/* --- Scrollbar stylisée --- */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
+
+/* ---------- 10. UTILITAIRES ---------- */
+.text-narrative  { font-family: var(--font-headline); }
+.text-interface  { font-family: var(--font-body); }
+.text-muted      { color: var(--color-on-surface-variant); }
+.text-primary    { color: var(--color-primary); }
+.text-secondary  { color: var(--color-secondary); }
+.text-tertiary   { color: var(--color-tertiary); }
+.text-error      { color: var(--color-error); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+.fade-in { animation: fadeIn var(--anim-normal) ease-out forwards; }
+.float-up { animation: floatUp var(--anim-slow) ease-out forwards; }
