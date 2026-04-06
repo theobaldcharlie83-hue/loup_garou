@@ -17,7 +17,7 @@ const TEAM_CLASS = {
 const PHASE_META = {
   night:         { label: 'Phase de Nuit',    icon: '🌙' },
   day:           { label: 'Phase de Jour',     icon: '☀️' },
-  interrogation: { label: 'Interrogatoire',    icon: 'ðŸ§¸' },
+  interrogation: { label: 'Interrogatoire',    icon: '🧸' },
 }
 
 /* Ordre officiel de nuit — Best Of */
@@ -33,7 +33,7 @@ const NIGHT_ORDER = [
   { id: 'grand-mechant', label: 'Appeler le Grand-Méchant-Loup', instruction: 'Il peut désigner une 2ème victime seul (si aucun loup n\'est mort).' },
   { id: 'infect-pere',  label: 'Appeler l\'Infect Père des Loups', instruction: 'Il peut infecter la victime des loups.' },
   { id: 'loup-blanc',   label: 'Appeler le Loup Blanc',        instruction: 'Il peut (une nuit sur deux) éliminer un autre loup.' },
-  { id: 'joueur-flute', label: 'Appeler le Joueur de FlÃ»te',   instruction: 'Il désigne deux nouveaux joueurs à charmer.' },
+  { id: 'joueur-flute', label: 'Appeler le Joueur de Flûte',   instruction: 'Il désigne deux nouveaux joueurs à charmer.' },
   { id: 'sorciere',     label: 'Appeler la Sorcière',          instruction: 'Montrez-lui la victime. Elle peut ressusciter ou empoisonner.' },
 ]
 
@@ -68,7 +68,7 @@ export default function DashboardScreen() {
   const [isAiVotingLoading, setIsAiVotingLoading] = useState(false)
   const [chasseurPendingId, setChasseurPendingId] = useState(null)
   
-  // ── Ã‰tape 1 & 2 : nouveaux states UI/UX ────────────────────â”€
+  // ── Étape 1 & 2 : nouveaux states UI/UX ─────────────────────
   const [highlightedIds, setHighlightedIds]       = useState([])      // IDs momentanément mis en lumière
   const [isProcessingAction, setIsProcessingAction] = useState(false) // Debounce global pour les animations
   const [captainModal, setCaptainModal]           = useState(false)   // Modale "désignez un capitaine"
@@ -177,7 +177,7 @@ export default function DashboardScreen() {
           setTimeout(() => {
             setHighlightedIds([]);
             eliminatePlayer(rnd, 'vote');
-            useGameStore.getState().pushToJournal(`âš–ï¸ Ã‰galité au vote : Le Capitaine IA (${captainAlive.name}) a tranché pour éliminer ${targetPlayer?.name}.`, 'death');
+            useGameStore.getState().pushToJournal(`⚖️ Égalité au vote : Le Capitaine IA (${captainAlive.name}) a tranché pour éliminer ${targetPlayer?.name}.`, 'death');
             setIsVoting(false);
             setTribunalLocked(true);
             setIsProcessingAction(false);
@@ -282,7 +282,7 @@ export default function DashboardScreen() {
 
   const handleEliminate = (pid) => {
     const p = players.find(x => x.id === pid)
-    eliminatePlayer(pid, 'vote') // Ã‰limination directe/MJ considérée comme 'vote'
+    eliminatePlayer(pid, 'vote') // Élimination directe/MJ considérée comme 'vote'
     setSelectedId(null)
     // Si c'est un chasseur vivant => déclencher son pouvoir
     if (p?.roleId === 'chasseur' && p?.isAlive) {
@@ -292,7 +292,7 @@ export default function DashboardScreen() {
   const handleInterrogate = (player) => { startInterrogation(player.id); navigate('/interrogation') }
   const handleReset = () => { useGameStore.getState().resetGame(); navigate('/') }
 
-  /* ── Highlight aléatoire ──────────────────────────────â”€ */
+  /* ── Highlight aléatoire ─────────────────────────────── */
   const triggerHighlight = (ids) => {
     setIsProcessingAction(true)
     setHighlightedIds(ids)
@@ -398,7 +398,7 @@ export default function DashboardScreen() {
         const newCharmed = [...charmedIds]
         nightSelection.forEach(id => { if(!newCharmed.includes(id)) newCharmed.push(id) })
         setCharmedIds(newCharmed)
-        pushToJournal(`Le Joueur de FlÃ»te a charmé de nouvelles victimes...`)
+        pushToJournal(`Le Joueur de Flûte a charmé de nouvelles victimes...`)
         useGameStore.getState().checkGameOver()
       } else if (currentNightStepId === 'chien-loup' && nightSelection.length > 0) {
         const side = useGameStore.getState().chienLoupSide;
@@ -446,7 +446,7 @@ export default function DashboardScreen() {
 
       {/* â•â• HEADER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <header className="dashboard-header">
-        <span className="header-title">âœ¦ Le Grimoire</span>
+        <span className="header-title">✧ Le Grimoire</span>
 
         <div className="header-phase-badge" role="status" aria-live="polite">
           <span aria-hidden="true">{pm.icon}</span>{pm.label}
@@ -470,7 +470,7 @@ export default function DashboardScreen() {
             </>
           )}
           <button id="btn-reset" className="header-btn" onClick={handleReset}>
-            â†© Reconfigurer
+            ↩ Reconfigurer
           </button>
         </div>
       </header>
@@ -483,13 +483,13 @@ export default function DashboardScreen() {
 
           {/* Stats */}
           <div className="sidebar-section">
-            <div className="sidebar-section-title">ðŸ“Š Situation</div>
+            <div className="sidebar-section-title">📊 Situation</div>
             <div className="stats-row">
               <span className="stats-label">En vie</span>
               <span className="stats-value alive">{alive.length}</span>
             </div>
             <div className="stats-row">
-              <span className="stats-label">Ã‰liminés</span>
+              <span className="stats-label">Éliminés</span>
               <span className="stats-value">{players.length - alive.length}</span>
             </div>
             <div className="stats-row">
@@ -501,14 +501,14 @@ export default function DashboardScreen() {
           {/* Sorcière */}
           {witchInGame && phase === 'day' && (
             <div className="sidebar-section">
-              <div className="sidebar-section-title">ðŸ§ª Sorcière — Potions de Jour</div>
+              <div className="sidebar-section-title">🧪 Sorcière — Potions de Jour</div>
               <p style={{fontSize:'0.75rem', opacity: 0.6}}>Géré via action contextuelle la nuit.</p>
               <div className={`potion-item${!witchPotions.life ? ' used' : ''}`}>
-                <span className="potion-icon">ðŸ’Š</span>
+                <span className="potion-icon">💊</span>
                 <span className="potion-label">Potion de Vie</span>
                 {witchPotions.life
                   ? <span className="potion-used-tag">Active</span>
-                  : <span className="potion-used-tag">Ã‰puisée</span>
+                  : <span className="potion-used-tag">Épuisée</span>
                 }
               </div>
 
@@ -517,7 +517,7 @@ export default function DashboardScreen() {
                 <span className="potion-label">Potion de Mort</span>
                 {witchPotions.death
                   ? <span className="potion-used-tag">Active</span>
-                  : <span className="potion-used-tag">Ã‰puisée</span>
+                  : <span className="potion-used-tag">Épuisée</span>
                 }
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function DashboardScreen() {
 
           {/* Rôles */}
           <div className="sidebar-section">
-            <div className="sidebar-section-title">ðŸ“‹ Joueurs &amp; Rôles</div>
+            <div className="sidebar-section-title">📋 Joueurs &amp; Rôles</div>
             {players.map(p => {
               const role = ROLE_BY_ID[p.roleId]
               return (
@@ -592,19 +592,19 @@ export default function DashboardScreen() {
                 onKeyDown={e => e.key === 'Enter' && handleAvatar(player)}
               >
                 <div className={`avatar-circle ${tc}`}>
-                  {isWildChildModel && <div className="av-wildchild-badge" title="Modèle de l'Enfant Sauvage" aria-hidden="true">ðŸŒ¿</div>}
+                  {isWildChildModel && <div className="av-wildchild-badge" title="Modèle de l'Enfant Sauvage" aria-hidden="true">🌿</div>}
                   <span aria-hidden="true">{role?.icon ?? 'â“'}</span>
                   {player.isPlush && <span className="av-plush-badge" aria-hidden="true">ðŸ¾</span>}
                   
-                  {nightActions.wolvesVictim === player.id && <div className="av-temp-badge" aria-hidden="true">ðŸ’€</div>}
-                  {nightActions.witchHealed && nightActions.wolvesVictim === player.id && <div className="av-temp-badge" style={{top: -65}} aria-hidden="true">ðŸ’–</div>}
+                  {nightActions.wolvesVictim === player.id && <div className="av-temp-badge" aria-hidden="true">💀</div>}
+                  {nightActions.witchHealed && nightActions.wolvesVictim === player.id && <div className="av-temp-badge" style={{top: -65}} aria-hidden="true">💖</div>}
                   {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
 
-                  {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">ðŸ’€</div>}
+                  {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
                 <div className="av-name">{player.name}</div>
                 <div className="av-role">
-                  {player.roleId === 'ancien' && ancienLives > 0 ? `Ancien (ðŸ›¡ï¸${ancienLives})` : (role?.name ?? '?')}
+                  {player.roleId === 'ancien' && ancienLives > 0 ? `Ancien (🛡️${ancienLives})` : (role?.name ?? '?')}
                 </div>
               </div>
             )
@@ -643,7 +643,7 @@ export default function DashboardScreen() {
                           setNightSelection(picks);
                           triggerHighlight(picks);
                         }
-                    }}>ðŸŽ² Cupidon IA</button>
+                    }}>🎲 Cupidon IA</button>
                   )}
 
                   {/* ── Chien-Loup IA ── */}
@@ -652,7 +652,7 @@ export default function DashboardScreen() {
                         const side = Math.random() < 0.5 ? 'village' : 'loup';
                         useGameStore.getState().setChienLoupSide(side);
                         setNightSelection(['done']);
-                    }}>ðŸŽ² Chien-Loup IA</button>
+                    }}>🎲 Chien-Loup IA</button>
                   )}
 
                   {/* ── Enfant Sauvage IA ── */}
@@ -665,7 +665,7 @@ export default function DashboardScreen() {
                           setNightSelection([rnd.id]);
                           triggerHighlight([rnd.id]);
                         }
-                    }}>ðŸŽ² Enfant Sauvage IA</button>
+                    }}>🎲 Enfant Sauvage IA</button>
                   )}
 
                   {/* ── Voyante IA ── */}
@@ -680,7 +680,7 @@ export default function DashboardScreen() {
                         } else {
                           advanceNightPhase();
                         }
-                    }}>ðŸŽ² Voyante IA</button>
+                    }}>🎲 Voyante IA</button>
                   )}
 
                   {/* ── Renard IA ── */}
@@ -691,7 +691,7 @@ export default function DashboardScreen() {
                           const rnd = valids[Math.floor(Math.random() * valids.length)];
                           setNightSelection([rnd.id]);
                         }
-                    }}>ðŸŽ² Renard IA (Groupe analysé)</button>
+                    }}>🎲 Renard IA (Groupe analysé)</button>
                   )}
 
                   {/* ── Loups IA ── */}
@@ -704,7 +704,7 @@ export default function DashboardScreen() {
                           setNightSelection([rnd.id]);
                           triggerHighlight([rnd.id]);
                         }
-                    }}>ðŸŽ² Loups IA (Victime Aléatoire)</button>
+                    }}>🎲 Loups IA (Victime Aléatoire)</button>
                   )}
 
                   {/* ── Grand-Méchant-Loup IA ── */}
@@ -717,7 +717,7 @@ export default function DashboardScreen() {
                           setNightSelection([rnd.id]);
                           triggerHighlight([rnd.id]);
                         }
-                    }}>ðŸŽ² Grand-Méchant-Loup IA</button>
+                    }}>🎲 Grand-Méchant-Loup IA</button>
                   )}
 
                   {/* ── Infect Père IA ── */}
@@ -727,7 +727,7 @@ export default function DashboardScreen() {
                         commitInfection(nightActions.wolvesVictim);
                         setNightSelection([nightActions.wolvesVictim]);
                         triggerHighlight([nightActions.wolvesVictim]);
-                    }}>ðŸŽ² Infect Père IA (Infection systématique)</button>
+                    }}>🎲 Infect Père IA (Infection systématique)</button>
                   )}
 
                   {/* ── Loup Blanc IA ── */}
@@ -742,10 +742,10 @@ export default function DashboardScreen() {
                         } else { 
                           advanceNightPhase(); 
                         }
-                    }}>ðŸŽ² Loup Blanc IA (Ã‰limine un Loup)</button>
+                    }}>🎲 Loup Blanc IA (Élimine un Loup)</button>
                   )}
 
-                  {/* ── Joueur de FlÃ»te IA ── */}
+                  {/* ── Joueur de Flûte IA ── */}
                   {currentStepInfo.id === 'joueur-flute' && players.find(p => p.roleId === 'joueur-flute' && p.isAlive)?.isPlush && nightSelection.length < 2 && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
                         const valids = alive.filter(p => p.roleId !== 'joueur-flute' && !charmedIds.includes(p.id));
@@ -756,7 +756,7 @@ export default function DashboardScreen() {
                           setNightSelection(ids);
                           triggerHighlight(ids);
                         }
-                    }}>ðŸŽ² FlÃ»tiste IA (Charmer 2 joueurs)</button>
+                    }}>🎲 Flûtiste IA (Charmer 2 joueurs)</button>
                   )}
 
                   {/* ── Sorcière IA ── */}
@@ -778,7 +778,7 @@ export default function DashboardScreen() {
                           commitWitchDeath(rnd.id);
                           triggerHighlight([rnd.id]);
                         }
-                    }}>ðŸŽ² Sorcière IA (Sauvetage Stratégique)</button>
+                    }}>🎲 Sorcière IA (Sauvetage Stratégique)</button>
                   )}
 
                   {/* ── Bouton Passer ── */}
@@ -794,8 +794,8 @@ export default function DashboardScreen() {
                     }
                   >
                     {currentStepInfo.id === 'cupidon' && nightSelection.length === 2 ? 'â¤ï¸ Valider le couple' 
-                      : currentStepInfo.id === 'joueur-flute' ? 'ðŸŽ¶ Charmer les joueurs'
-                      : currentStepInfo.id === 'enfant-sauvage' ? 'ðŸŒ¿ Valider le Modèle'
+                      : currentStepInfo.id === 'joueur-flute' ? '🎶 Charmer les joueurs'
+                      : currentStepInfo.id === 'enfant-sauvage' ? '🌿 Valider le Modèle'
                       : 'Passer à la suite'}
                   </button>
                 </>
@@ -813,9 +813,9 @@ export default function DashboardScreen() {
           {phase === 'day' && !isVoting && !tribunalLocked && (
             <div className="night-step-card end-night">
               <h3>Phase de Jour ☀️</h3>
-              <p>Ã‰coutez les plaidoyers, interrogez UNE SEULE peluche pour récolter des indices, puis préparez-vous au Tribunal.</p>
+              <p>Écoutez les plaidoyers, interrogez UNE SEULE peluche pour récolter des indices, puis préparez-vous au Tribunal.</p>
               <button className="header-btn" style={{marginTop: 15, alignSelf: 'center'}} onClick={() => setIsVoting(true)}>
-                âš–ï¸ Ouvrir le Tribunal du Village
+                ⚖️ Ouvrir le Tribunal du Village
               </button>
             </div>
           )}
@@ -823,7 +823,7 @@ export default function DashboardScreen() {
           {/* ── Tribunal Verrouillé ──────────────────────────── */}
           {phase === 'day' && tribunalLocked && (
             <div className="tribunal-locked-panel">
-              <div style={{fontSize: '2.5rem'}}>ðŸª“</div>
+              <div style={{fontSize: '2.5rem'}}>🪓</div>
               <h3>Sentence prononcée</h3>
               <p>Le village a rendu son verdict. La nuit tombe sur le Grimoire...</p>
               <button
@@ -838,7 +838,7 @@ export default function DashboardScreen() {
 
           {phase === 'day' && isVoting && !tribunalLocked && (
              <div className="night-step-card end-night" style={{width: 500, maxHeight: '60vh', overflowY: 'auto'}}>
-                <h3>Tribunal du Village âš–ï¸</h3>
+                <h3>Tribunal du Village ⚖️</h3>
                 <p style={{marginBottom: 10}}>Récoltez les votes puis laissez les peluches juger.</p>
                 
                 <div style={{display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginBottom: 15}}>
@@ -861,7 +861,7 @@ export default function DashboardScreen() {
                 </div>
 
                 <button className="header-btn" disabled={isAiVotingLoading} onClick={handlePlushiesVote} style={{ alignSelf: 'center', marginBottom: 15, display: alive.some(p => p.isPlush) ? 'block' : 'none' }}>
-                   {isAiVotingLoading ? 'ðŸ¤– Calcul des probabilités...' : 'ðŸ¤– IA : Faire Voter les Doudous'}
+                   {isAiVotingLoading ? '🤖 Calcul des probabilités...' : '🤖 IA : Faire Voter les Doudous'}
                 </button>
 
                 {Object.keys(dayVotes).length > 0 && (
@@ -875,7 +875,7 @@ export default function DashboardScreen() {
                             <li key={voterId} style={{display:'flex', alignItems:'center', gap: 5}}>
                               {v?.name} {t ? `élimine ${t.name}` : `ne vote pas`}
                               {v?.isPlush && useGameStore.getState().qaScoringData[voterId] && (
-                                 <button style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem'}} onClick={() => setQaModalPlushId(v.id)} title="Audit de vote">ðŸ“Š</button>
+                                 <button style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem'}} onClick={() => setQaModalPlushId(v.id)} title="Audit de vote">📊</button>
                               )}
                             </li>
                           )
@@ -912,12 +912,12 @@ export default function DashboardScreen() {
                                    setIsVoting(false);
                                    setTribunalLocked(true); // â† Verrouillage du Tribunal
                                 }}>
-                                   ðŸª“ Exécuter
+                                   🪓 Exécuter
                                 </button>
                               </>
                             ) : (
                               <div style={{marginTop: 10}}>
-                                <p>âš–ï¸ Ã‰galité entre {victims.map(v => players.find(p=>p.id===v)?.name).join(', ')}.</p>
+                                <p>⚖️ Égalité entre {victims.map(v => players.find(p=>p.id===v)?.name).join(', ')}.</p>
                                 {captainAlive ? (
                                   <div style={{marginTop: 10, border: '1px dashed #ffd700', padding: 10, borderRadius: 5}}>
                                      <p style={{fontSize: '0.8rem', color: '#ffd700'}}>Le Capitaine doit trancher l'égalité :</p>
@@ -984,7 +984,7 @@ export default function DashboardScreen() {
                      )}
                      {selectedPlayer.isAlive && selectedPlayer.id !== captainId && (
                         <button className="pap-btn" style={{background: '#ffd700', color: '#000'}} onClick={() => setCaptain(selectedPlayer.id)}>
-                           ðŸŽ–ï¸ Désigner Capitaine
+                           🎖️ Désigner Capitaine
                         </button>
                      )}
                    </>
@@ -1002,7 +1002,7 @@ export default function DashboardScreen() {
                           }
                         }}
                       >
-                        ðŸŽ­ Interroger {hasInterrogatedToday && '(Utilisé)'}
+                        🎭 Interroger {hasInterrogatedToday && '(Utilisé)'}
                       </button>
                     )}
                     <button
@@ -1010,7 +1010,7 @@ export default function DashboardScreen() {
                       className="pap-btn eliminate"
                       onClick={() => handleEliminate(selectedPlayer.id)}
                     >
-                      ðŸ’€ Ã‰liminer
+                      💀 Éliminer
                     </button>
                   </>
                 ) : (
@@ -1018,7 +1018,7 @@ export default function DashboardScreen() {
                   <>
                     {currentNightStepId === 'cupidon' && (
                        <button className="pap-btn lover" onClick={() => handleNightActionSelect()}>
-                         ðŸ’– {nightSelection.includes(selectedPlayer.id) ? 'Désélectionner' : 'Joueur Cupidonné'}
+                         💖 {nightSelection.includes(selectedPlayer.id) ? 'Désélectionner' : 'Joueur Cupidonné'}
                        </button>
                     )}
                     {currentNightStepId === 'voyante' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'voyante' && !nightActions.seerSeen && (
@@ -1028,19 +1028,19 @@ export default function DashboardScreen() {
                     )}
                     {currentNightStepId === 'loup-simple' && selectedPlayer.isAlive && !['loup','solitaire','loup-infecte'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && (
                        <button className="pap-btn eliminate" onClick={() => handleNightActionSelect()}>
-                         ðŸº Dévorer ce joueur
+                         🐺 Dévorer ce joueur
                        </button>
                     )}
                     {currentNightStepId === 'sorciere' && (
                        <>
                          {nightActions.wolvesVictim === selectedPlayer.id && witchPotions.life && (
                            <button className="pap-btn save" onClick={() => handleNightActionSelect('life')}>
-                             ðŸ’– Potion de vie (Sauver)
+                             💖 Potion de vie (Sauver)
                            </button>
                          )}
                          {selectedPlayer.isAlive && selectedPlayer.id !== nightActions.wolvesVictim && selectedPlayer.roleId !== 'sorciere' && !nightActions.witchKilled && witchPotions.death && (
                            <button className="pap-btn eliminate" onClick={() => handleNightActionSelect('death')}>
-                             ☠️ Potion de mort (Ã‰liminer)
+                             ☠️ Potion de mort (Éliminer)
                            </button>
                          )}
                        </>
@@ -1053,12 +1053,12 @@ export default function DashboardScreen() {
                     {currentNightStepId === 'chien-loup' && selectedPlayer.roleId === 'chien-loup' && (
                        <div style={{display:'flex', gap: 5}}>
                          <button className="pap-btn save" onClick={() => handleNightActionSelect('village')}>ðŸ˜ï¸ Village</button>
-                         <button className="pap-btn eliminate" onClick={() => handleNightActionSelect('loup')}>ðŸº Loup</button>
+                         <button className="pap-btn eliminate" onClick={() => handleNightActionSelect('loup')}>🐺 Loup</button>
                        </div>
                     )}
                     {currentNightStepId === 'joueur-flute' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'joueur-flute' && !charmedIds.includes(selectedPlayer.id) && (
                        <button className="pap-btn charm" onClick={() => handleNightActionSelect()}>
-                         ðŸŽ¶ Charmer ce joueur
+                         🎶 Charmer ce joueur
                        </button>
                     )}
                     {currentNightStepId === 'grand-mechant' && selectedPlayer.isAlive && !['loup','solitaire'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && selectedPlayer.id !== nightActions.wolvesVictim && !nightActions.grandMechantVictim && (
@@ -1073,7 +1073,7 @@ export default function DashboardScreen() {
                     )}
                     {currentNightStepId === 'enfant-sauvage' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'enfant-sauvage' && !wildChildModelId && (
                        <button className="pap-btn see" onClick={() => handleNightActionSelect()}>
-                         ðŸŒ¿ Ce joueur sera mon modèle
+                         🌿 Ce joueur sera mon modèle
                        </button>
                     )}
                     {currentNightStepId === 'renard' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'renard' && nightSelection.length === 0 && (
@@ -1159,7 +1159,7 @@ export default function DashboardScreen() {
 
         </main>
 
-        {/* ── Droite : Le Journal ────────────────────────────â”€ */}
+        {/* ── Droite : Le Journal ───────────────────────────── */}
         <aside className="dashboard-sidebar right" aria-label="Journal">
           <div className="journal-header">
             <div className="journal-title">ðŸ“– Chronique du Village</div>
@@ -1176,23 +1176,23 @@ export default function DashboardScreen() {
         </aside>
       </div>
 
-      {/* â•â• Ã‰CRAN DE VICTOIRE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* â•â• ÉCRAN DE VICTOIRE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {winner && (
         <div className="victory-overlay">
            <div className="victory-card">
               <div className="victory-icon">
                  {winner === 'village' && 'ðŸ˜ï¸'}
-                 {winner === 'loups' && 'ðŸº'}
-                 {winner === 'joueur-flute' && 'ðŸŽ¶'}
+                 {winner === 'loups' && '🐺'}
+                 {winner === 'joueur-flute' && '🎶'}
                  {winner === 'loup-blanc' && 'âšª'}
                  {winner === 'ange' && 'ðŸ˜‡'}
                  {winner === 'amoureux' && 'ðŸ’˜'}
-                 {winner === 'aucun' && 'ðŸ’€'}
+                 {winner === 'aucun' && '💀'}
               </div>
               <h1 className="victory-title">
                  {winner === 'village' && 'Victoire du Village !'}
                  {winner === 'loups' && 'Les Loups-Garous triomphent !'}
-                 {winner === 'joueur-flute' && 'Le Joueur de FlÃ»te a envouté tout le monde !'}
+                 {winner === 'joueur-flute' && 'Le Joueur de Flûte a envouté tout le monde !'}
                  {winner === 'loup-blanc' && 'Le Loup Blanc est le seul survivant !'}
                  {winner === 'ange' && 'L\'Ange a réussi son martyr !'}
                  {winner === 'amoureux' && 'L\'Amour est plus fort que tout !'}
@@ -1222,7 +1222,7 @@ export default function DashboardScreen() {
       {successionPendingForId && (
         <div className="succession-overlay">
            <div className="succession-modal">
-              <h2>ðŸŽ–ï¸ Le Dernier Souffle</h2>
+              <h2>🎖️ Le Dernier Souffle</h2>
               <p>Le Capitaine <strong>{players.find(p => p.id === successionPendingForId)?.name}</strong> a été éliminé.</p>
               <p>Il doit désigner son successeur avant de partir...</p>
               
@@ -1230,7 +1230,7 @@ export default function DashboardScreen() {
                  {players.filter(p => p.isAlive).map(p => (
                     <button key={p.id} className="succession-item" onClick={() => transferCaptaincy(p.id)}>
                        <span className="avatar-mini">{ROLE_BY_ID[p.roleId]?.icon}</span>
-                       <span className="name">{p.name} {p.isPlush ? '(ðŸ§¸)' : '(ðŸ‘¤)'}</span>
+                       <span className="name">{p.name} {p.isPlush ? '(🧸)' : '(👤)'}</span>
                     </button>
                  ))}
                  
@@ -1242,18 +1242,18 @@ export default function DashboardScreen() {
                        transferCaptaincy(alivePool[randomIdx].id);
                     }
                  }}>
-                    ðŸŽ² Choix Aléatoire
+                    🎲 Choix Aléatoire
                  </button>
               </div>
            </div>
         </div>
       )}
 
-      {/* ── MODALE : DÃ‰SIGNER UN CAPITAINE ────────────────── */}
+      {/* ── MODALE : DÉSIGNER UN CAPITAINE ────────────────── */}
       {captainModal && (
         <div className="grimoire-modal-overlay" onClick={() => setCaptainModal(false)}>
           <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
-            <div className="grimoire-modal-icon">ðŸŽ–ï¸</div>
+            <div className="grimoire-modal-icon">🎖️</div>
             <h2>Capitaine requis !</h2>
             <p>
               Avant de plonger le village dans les ténèbres,<br/>
@@ -1273,7 +1273,7 @@ export default function DashboardScreen() {
       {interrogationModal && (
         <div className="grimoire-modal-overlay" onClick={() => setInterrogationModal(null)}>
           <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
-            <div className="grimoire-modal-icon">ðŸŽ­</div>
+            <div className="grimoire-modal-icon">🎭</div>
             <h2>Interroger {interrogationModal.name} ?</h2>
             <p>
               Vous ne disposez que d'<strong>un seul interrogatoire</strong> par jour.<br/>
@@ -1288,7 +1288,7 @@ export default function DashboardScreen() {
                 handleInterrogate(interrogationModal)
                 setInterrogationModal(null)
               }}>
-                ðŸŽ­ Oui, interroger !
+                🎭 Oui, interroger !
               </button>
             </div>
           </div>
