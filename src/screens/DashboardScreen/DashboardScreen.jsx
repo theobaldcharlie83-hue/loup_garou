@@ -444,7 +444,7 @@ export default function DashboardScreen() {
   return (
     <div className={`dashboard-screen phase-${phase}`} aria-label="Tableau de bord">
 
-      {/* â•â• HEADER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ══ HEADER ══════════════════════════════════════════════ */}
       <header className="dashboard-header">
         <span className="header-title">✧ Le Grimoire</span>
 
@@ -475,7 +475,7 @@ export default function DashboardScreen() {
         </div>
       </header>
 
-      {/* â•â• 3 COLONNES â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•== */}
+      {/* ══ 3 COLONNES ════════════════════════════════════════== */}
       <div className="dashboard-content">
 
         {/* ── Gauche : Le Grimoire ──────────────────────────── */}
@@ -531,7 +531,7 @@ export default function DashboardScreen() {
               return (
                 <div key={p.id} className={`role-list-item${!p.isAlive ? ' dead' : ''}`}>
                   <span className="role-list-name">
-                    {p.isPlush && <span aria-hidden="true">ðŸ¾</span>}
+                    {p.isPlush && <span aria-hidden="true">🐾</span>}
                     {p.name}
                   </span>
                   <span className="role-list-role">{role?.icon} {role?.name ?? '?'}</span>
@@ -593,18 +593,18 @@ export default function DashboardScreen() {
               >
                 <div className={`avatar-circle ${tc}`}>
                   {isWildChildModel && <div className="av-wildchild-badge" title="Modèle de l'Enfant Sauvage" aria-hidden="true">🌿</div>}
-                  <span aria-hidden="true">{role?.icon ?? 'â“'}</span>
-                  {player.isPlush && <span className="av-plush-badge" aria-hidden="true">ðŸ¾</span>}
+                  <span aria-hidden="true">{role?.icon ?? '❓'}</span>
+                  {player.isPlush && <span className="av-plush-badge" aria-hidden="true">🐾</span>}
                   
                   {nightActions.wolvesVictim === player.id && <div className="av-temp-badge" aria-hidden="true">💀</div>}
                   {nightActions.witchHealed && nightActions.wolvesVictim === player.id && <div className="av-temp-badge" style={{top: -65}} aria-hidden="true">💖</div>}
-                  {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
+                  {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️ </div>}
 
                   {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
                 <div className="av-name">{player.name}</div>
                 <div className="av-role">
-                  {player.roleId === 'ancien' && ancienLives > 0 ? `Ancien (🛡️${ancienLives})` : (role?.name ?? '?')}
+                  {player.roleId === 'ancien' && ancienLives > 0 ? `Ancien (🛡️ ${ancienLives})` : (role?.name ?? '?')}
                 </div>
               </div>
             )
@@ -1047,7 +1047,7 @@ export default function DashboardScreen() {
                     )}
                     {currentNightStepId === 'infect-pere' && selectedPlayer.isAlive && !selectedPlayer.isInfected && (
                        <button className="pap-btn poison" onClick={() => handleNightActionSelect()}>
-                         â˜£ï¸ Infecter (Infection Latente)
+                         ☣️ Infecter (Infection Latente)
                        </button>
                     )}
                     {currentNightStepId === 'chien-loup' && selectedPlayer.roleId === 'chien-loup' && (
@@ -1176,7 +1176,7 @@ export default function DashboardScreen() {
         </aside>
       </div>
 
-      {/* â•â• ÉCRAN DE VICTOIRE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ══ ÉCRAN DE VICTOIRE ═══════════════════════════════════ */}
       {winner && (
         <div className="victory-overlay">
            <div className="victory-card">
