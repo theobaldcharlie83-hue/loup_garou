@@ -850,8 +850,8 @@
 .pap-btn.charm { background: #1a0a28; color: #e91e63; border: 1px solid #e91e63; }
 .pap-btn.charm:hover { background: #280f3c; transform: translateY(-1px); }
 
-/* ── Responsive Mobile ───────────────────────────────────── */
-@media (max-width: 768px) {
+/* ── Responsive Mobile & Tablettes (et smartphones en paysage) ── */
+@media (max-width: 1024px) {
   /* Réduire la taille des avatars (tokens) et ajuster leur espacement */
   .avatar-circle {
     width: 44px;
