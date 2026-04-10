@@ -10,75 +10,47 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 /* ─── Vote Intelligent par Peluche (Phase de Jour) ───────────── */
-export async function generatePlushiesVotes({ plushiesToVote, allPlayers, journalHistory, qaScoringData }) {
-  if (!API_KEY || API_KEY === 'your_gemini_api_key_here') {
-    await new Promise(r => setTimeout(r, 1000));
-    // Simulation
-    return plushiesToVote.map(p => {
-       const others = allPlayers.filter(x => x.id !== p.id && x.isAlive);
-       const target = others[Math.floor(Math.random() * others.length)];
-       return { plushId: p.id, voteForId: target?.id, reason: "Il me fait un peu peur depuis hier." };
-    });
-  }
 
-  const genAI = new GoogleGenerativeAI(API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+/**
+ * Helper rationnel pour le vote : choisit la cible avec le score le plus bas (plus suspecte)
+ * dans la matrice des croyances.
+ */
+function getRationalVote(plushId, allPlayers, qaScoringData) {
+  const matrix = qaScoringData[plushId] || {};
+  const aliveOthers = allPlayers.filter(p => p.id !== plushId && p.isAlive);
+  
+  if (aliveOthers.length === 0) return null;
 
-  // Simplification visuelle du matrix (scores et raisons)
-  let scoringContext = "MATRICE DES CROYANCES (Hard Rules):\n";
-  plushiesToVote.forEach(p => {
-     const matrix = qaScoringData[p.id];
-     if (matrix) {
-        scoringContext += `Peluche ${p.name} (${p.roleName}):\n`;
-        Object.entries(matrix).forEach(([targetId, info]) => {
-           const tName = allPlayers.find(x => x.id === targetId)?.name;
-           if (tName && info.score !== 0) {
-              scoringContext += `  -> Envers ${tName}: Score de ${info.score} (${info.breakdown[info.breakdown.length - 1]?.reason})\n`;
-           }
-        });
-     }
+  // Extraire les scores pour les joueurs vivants
+  const candidates = aliveOthers.map(p => ({
+    id: p.id,
+    score: matrix[p.id]?.score ?? 0
+  }));
+
+  // Trouver le score minimum (le plus suspect)
+  const minScore = Math.min(...candidates.map(c => c.score));
+  
+  // Filtrer les candidats qui ont ce score minimum
+  const bestTargets = candidates.filter(c => c.score === minScore);
+  
+  // Choix aléatoire parmi les meilleurs cibles (ceux avec le score le plus bas)
+  const finalTarget = bestTargets[Math.floor(Math.random() * bestTargets.length)];
+  return finalTarget?.id;
+}
+
+export async function generatePlushiesVotes({ plushiesToVote, allPlayers, qaScoringData }) {
+  // Délai asynchrone court pour préserver l'effet UX de réflexion
+  await new Promise(r => setTimeout(r, 1000));
+
+  // Vote rationnel calculé sans API, en se basant sur la matrice locale
+  return plushiesToVote.map(p => {
+     const targetId = getRationalVote(p.id, allPlayers, qaScoringData);
+     return { 
+       plushId: p.id, 
+       voteForId: targetId, 
+       reason: "Ce vote est le résultat de mon analyse de confiance." 
+     };
   });
-
-  // Explication de la situation et du contexte
-  const systemPrompt = `Tu simules l'ensemble des votes de peluches lors d'une partie de Loups-Garous.
-Voici la liste des événements publics (Journal du village) qui se sont déroulés jusqu'ici :
-${journalHistory.map(j => `- [${j.type}] ${j.text}`).join('\n')}
-
-Voici la situation interne et intime de chaque peluche en ce moment :
-${scoringContext}
-
-Voici la liste des joueurs vivants sur lesquels on peut voter :
-${allPlayers.filter(p => p.isAlive).map(p => `- ID: ${p.id} | Nom: ${p.name}`).join('\n')}
-
-Voici les peluches qui doivent voter :
-${plushiesToVote.map(p => `- ID: ${p.id} | Nom: ${p.name} | Rôle secret: ${p.roleName}`).join('\n')}
-
-INSTRUCTIONS:
-1. RÈGLE D'OR : Consulte la Matrice des croyances. Si une peluche a attribué une note de +1000 à quelqu'un, elle NE DOIT JAMAIS voter contre ! Si elle a attribué une cible avec un score autour de -1000, elle DOIT OBLIGATOIREMENT voter contre en priorité absolue ! SI PLUSIEURS JOUEURS ONT UN SCORE DE -1000, ELLE DOIT CHOISIR ALÉATOIREMENT PARMI EUX.
-2. Pour les autres cas ou scores faibles (neutre, -10, etc.), les peluches loups essaieront de suivre la masse, les villageois chercheront un motif textuel dans l'historique public.
-3. Tu DOIS renvoyer la réponse STRICTEMENT ET UNIQUEMENT sous forme de JSON valide : un tableau d'objets. Aucun autre texte. Ne mets pas de markdown \`\`\`json.
-Format attendu:
-[
-  { "plushId": "l'ID de la peluche", "voteForId": "l'ID de sa cible", "reason": "Justification enfantine et mignonne de 1 phrase reprenant un indice ou le score absolu" }
-]`;
-
-  try {
-    const result = await model.generateContent(systemPrompt);
-    let txt = result.response.text().trim();
-    if (txt.startsWith('\`\`\`json')) txt = txt.replace(/\`\`\`json/, '');
-    if (txt.startsWith('\`\`\`')) txt = txt.replace(/\`\`\`/, '');
-    if (txt.endsWith('\`\`\`')) txt = txt.slice(0, -3);
-    const parsed = JSON.parse(txt);
-    return parsed;
-  } catch (err) {
-    console.error("Erreur API Gemini (Votes):", err);
-    // Fallback pseudo aléatoire
-    return plushiesToVote.map(p => {
-       const others = allPlayers.filter(x => x.id !== p.id && x.isAlive);
-       const target = others[Math.floor(Math.random() * others.length)];
-       return { plushId: p.id, voteForId: target?.id ?? null, reason: "Je ne sais plus quoi penser..." };
-    });
-  }
 }
 
 /* ─── System Prompt dynamique par peluche (Interrogatoire) ──── */

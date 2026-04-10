@@ -27,8 +27,8 @@ export async function generateChoices({ dayNumber, deadPlayers, plushieName }) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `Tu es l'assistant d'un jeu de rôle basé sur Les Loups-Garous de Thiercelieux. Nous sommes au ${dayNumber}. Les morts sont : ${deadPlayers}. Le joueur s'apprête à interroger la peluche nommée ${plushieName}. 
-Génère 3 options d'interrogatoire pertinentes et variées que le joueur peut choisir pour la cuisiner. Les options doivent tenir compte des morts récentes.
-Format requis : Uniquement un tableau JSON de 3 chaînes de caractères courtes. Aucune explication.`
+Génère 3 options d'interrogatoire pertinentes. Pour chaque option, estime son impact sur la jauge de confiance de la peluche (entre -20 et +20).
+Format requis : Uniquement un tableau JSON d'objets : [{"text": "...", "confidenceImpact": 10}, ...]. Aucune explication.`
 
     const result = await model.generateContent(prompt)
     let text = result.response.text()
@@ -85,17 +85,18 @@ Le joueur vient de t'adresser cette phrase/question : '${selectedChoice}'.
 Réponds en une ou deux phrases maximum.
 Ensuite, génère 3 CHOIX (questions/réactions) logiques que le joueur pourrait dire suite à TA réponse.
 
-IMPORTANT : Tu dois évaluer la situation. Si le joueur te met la pression ou au contraire s'il est gentil, ajuste le "trustScoreChange" (entre -20 et +20). 
-Si la confiance est très forte (>80%) ou la tension très grande (<20%), tu peux ajouter un indice cryptique sur ton identité Réelle ou sur tes soupçons dans le champ "clue".
+IMPORTANT : Tu dois évaluer la situation. Si le joueur te met la pression ou au contraire s'il est gentil, ajuste le "trustScoreChange" (entre -20 et +20).
+Si la confiance est très forte (>80%) ou la tension très grande (<20%), tu peux ajouter un indice dans le champ "clue".
+CONSIGNE CRITIQUE : L'indice doit être ENIGMATIQUE, flou ou métaphorique (ex: "Une odeur de forêt l'entoure", "Ses coutures semblent avoir été recousues à la hâte"). Ne révèle JAMAIS directement le rôle.
 
-Tu dois retourner UNIQUEMENT un objet JSON valide avec cette structure stricte :
+Tu dois retourner UNIQUEMENT un objet JSON :
 {
-  "response": "Ta phrase de réponse à la première personne.",
-  "nextChoices": ["Choix 1", "Choix 2", "Choix 3"],
+  "response": "Ta phrase de réponse.",
+  "nextChoices": [{"text": "Choix 1", "confidenceImpact": 5}, ...],
   "trustScoreChange": 5,
-  "clue": "optionnel : une phrase d'indice ou null"
+  "clue": "optionnel : indice cryptique ou null"
 }
-Aucun texte Markdown autour, JUSTE le JSON.`
+JUSTE le JSON.`
 
     const result = await model.generateContent(prompt)
     let text = result.response.text().trim()

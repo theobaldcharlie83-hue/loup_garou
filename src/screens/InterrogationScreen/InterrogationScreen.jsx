@@ -81,7 +81,7 @@ export default function InterrogationScreen() {
   if (!plush || !role) return null
 
   /* ── ACTION : Cliquer sur un choix dynamique ── */
-  const handleChoiceClick = async (choiceText) => {
+  const handleChoiceClick = async (choice) => {
     if (isThinking) return
     setError(null)
     setIsThinking(true)
@@ -99,21 +99,21 @@ export default function InterrogationScreen() {
         plushieName: plush.name,
         plushiePersonality: plushPersonality,
         plushieSecretRole: role.name,
-        selectedChoice: choiceText,
+        selectedChoice: choice.text,
         history: interrogationHistory
       })
 
       setCurrentText(result.response)
-      setInterrogationHistory(prev => [...prev, { q: choiceText, a: result.response }])
+      setInterrogationHistory(prev => [...prev, { q: choice.text, a: result.response }])
 
       addJournalEntry(
-        `[Interrogatoire de ${plush.name}] Choix : "${choiceText}"`,
+        `[Interrogatoire de ${plush.name}] Choix : "${choice.text}"`,
         'event',
       )
 
-      // Étape suivante : Trust & Clues
+      // Étape suivante : Trust & Clues (Calculé par l'IA)
       if (result.trustScoreChange) {
-        setTrustGauge(trustGauge + result.trustScoreChange);
+        setTrustGauge(Math.max(0, Math.min(100, trustGauge + result.trustScoreChange)));
       }
       if (result.clue) {
         addUnlockedClue(result.clue);
@@ -122,7 +122,7 @@ export default function InterrogationScreen() {
 
       setInterrogationStep(s => s + 1)
       if (interrogationStep < 3) {
-        setChoices(result.nextChoices || ["Hmm..."])
+        setChoices(result.nextChoices || [{ text: "Hmm...", confidenceImpact: 0 }])
       }
 
     } catch (err) {
@@ -238,18 +238,23 @@ export default function InterrogationScreen() {
                 La peluche se mure dans le silence. Vous devez tirer vos propres conclusions et retourner au village.
               </div>
             ) : (
-              choices.map((choiceText, idx) => (
+              choices.map((choice, idx) => (
                 <button
                   key={idx}
                   className={`intr-action-btn ${actionColors[idx % 3]}`}
-                  onClick={() => handleChoiceClick(choiceText)}
+                  onClick={() => handleChoiceClick(choice)}
                   disabled={isThinking}
                 >
                   <span className="intr-action-icon" aria-hidden="true">
                     {actionIcons[idx % 3]}
+                    {choice.confidenceImpact !== undefined && (
+                       <span className="intr-action-impact">
+                         {choice.confidenceImpact > 0 ? `+${choice.confidenceImpact}` : choice.confidenceImpact}
+                       </span>
+                    )}
                   </span>
                   <span className="intr-action-label" style={{ fontSize: 'var(--text-body-md)', fontStyle: 'italic', fontWeight: '500' }}>
-                    "{choiceText}"
+                    "{choice.text}"
                   </span>
                 </button>
               ))

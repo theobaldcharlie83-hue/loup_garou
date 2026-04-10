@@ -17,7 +17,8 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
     // BUG-09 fix: le store utilise 'wildChildModelId', pas 'wildChildModel'
     charmedIds: fluteCharmed = [],
     wildChildModelId: wildChildModel = null, // alias correct
-    chienLoupSide = null
+    chienLoupSide = null,
+    witchSavedPlayerIds = []
   } = storeState;
 
   const getTeam = (p) => {
@@ -30,7 +31,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
      return ROLE_BY_ID[p.roleId]?.team || 'village';
   };
 
-  const myTeam = getTeam(plushie);
+  const myTeam = lovers.includes(plushie.id) ? 'amoureux' : getTeam(plushie);
   const matrix = {};
 
   // Init
@@ -49,9 +50,13 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
      const targetTeam = getTeam(target);
 
      // --- REGLE GLOBALE ABSOLUE (CUPIDON) ---
-     if (lovers.includes(plushie.id) && lovers.includes(target.id)) {
-        addScore(target.id, 1000, "Partenaire amoureux (Symbiose)");
-        return; // +1000 override (we can still add other things, but love is absolute, so let's continue to add scores usually, the UI will clamp it)
+     if (myTeam === 'amoureux') {
+         if (lovers.includes(target.id)) {
+            addScore(target.id, 1000, "Partenaire amoureux (Symbiose)");
+         } else {
+            addScore(target.id, -1000, "Objectif Amoureux : seul mon partenaire doit survivre (-1000)");
+         }
+         return; // Un amoureux n'a que faire des autres règles de camp
      }
 
      // --- CATEGORIE 1 : LA MEUTE ---
@@ -85,8 +90,8 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
      }
 
      if (plushie.roleId === 'sorciere') {
-         if (nightActions.witchHealed && nightActions.wolvesVictim === target.id) {
-             addScore(target.id, 1000, "Je l'ai sauvé, il est ciblé par les loups (+1000)");
+         if (witchSavedPlayerIds.includes(target.id)) {
+             addScore(target.id, 500, "Je l'ai sauvé, je sais qu'il est innocent (+500)");
          }
      }
 
@@ -130,6 +135,42 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
         if (targetTeam !== 'loup') { // ne risque pas d'attaquer les loups qui pourraient l'aider
              Math.random() > 0.5 && addScore(target.id, -100, "Discours absurde pour m'attirer les foudres (Jour 1)");
         }
+     }
+
+     // --- DEDUCTION LOGIQUE : CHEVALIER À L'ÉPÉE ROUILLÉE ---
+     if (storeState.chevalierRevengeData) {
+       const { chevalierId, wolfId } = storeState.chevalierRevengeData;
+       
+       const isEvalCupidon = plushie.roleId === 'cupidon';
+       const isEvalWolf = ROLE_BY_ID[plushie.roleId]?.team === 'loup' || plushie.roleId === 'loup-blanc' || plushie.isInfected;
+
+       if (!isEvalWolf && !isEvalCupidon) {
+         const fullPlayers = storeState.players;
+         const chevIdx = fullPlayers.findIndex(p => p.id === chevalierId);
+         const wolfIdx = fullPlayers.findIndex(p => p.id === wolfId);
+         
+         if (chevIdx !== -1 && wolfIdx !== -1) {
+           let isBetween = false;
+           let currentIdx = (chevIdx + 1) % fullPlayers.length; // Parcours horaire
+           while (currentIdx !== wolfIdx) {
+             if (fullPlayers[currentIdx].id === target.id) {
+               isBetween = true;
+               break;
+             }
+             currentIdx = (currentIdx + 1) % fullPlayers.length;
+           }
+
+           if (isBetween) {
+             // Bonus mutuel : s'applique à la cible pour TOUS les autres (même ceux du segment)
+             addScore(target.id, 500, "Innocenté par la vengeance du Chevalier (Définitif +500)");
+           }
+         }
+       }
+     }
+
+     // --- CORBEAU : SUSPICION ACCRUE ---
+     if (storeState.corbeauTargetId === target.id) {
+        addScore(target.id, -100, "Cible du Corbeau (Suspicion accrue -100)");
      }
   });
 
