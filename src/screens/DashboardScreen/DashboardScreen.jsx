@@ -353,25 +353,21 @@ export default function DashboardScreen() {
       } else if (currentNightStepId === 'enfant-sauvage' && wildChildModelId) {
         const p = players.find(x => x.id === wildChildModelId);
         pushToJournal(`L'Enfant Sauvage a choisi son modèle : ${p?.name}.`);
-      } else    if (currentNightStepId === 'corbeau') {
-       if (nightSelection.length === 1) {
+      } else if (currentNightStepId === 'corbeau') {
+        if (nightSelection.length === 1) {
           useGameStore.getState().commitCorbeauTarget(nightSelection[0]);
-          advanceNightPhase();
-       }
-       return;
-    }
-    if (currentNightStepId === 'sorciere') {
-       // Rien à faire ici, la sorcière a déjà validé via ses boutons contextuels (vie/mort)
-       advanceNightPhase();
-       return;
-    }
-      if (nightActions.witchHealed) {
+        } else {
+          return;
+        }
+      } else if (currentNightStepId === 'sorciere') {
+        if (nightActions.witchHealed) {
           const p = players.find(x => x.id === nightActions.wolvesVictim);
           pushToJournal(`La Sorcière a utilisé sa potion de vie pour sauver ${p?.name}.`);
         }
         if (nightActions.witchKilled) {
           const p = players.find(x => x.id === nightActions.witchKilled);
           pushToJournal(`La Sorcière a empoisonné ${p?.name}.`);
+        }
       } else if (currentNightStepId === 'infect-pere' && nightActions.infectedTargetId) {
         const p = players.find(x => x.id === nightActions.infectedTargetId);
         pushToJournal(`Le Père des Loups a secrètement administré son sang à ${p?.name}.`);
