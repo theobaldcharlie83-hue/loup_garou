@@ -31,7 +31,7 @@ const NIGHT_ORDER = [
   { id: 'renard',        label: 'Appeler le Renard',            instruction: 'Il analyse un groupe de 3 joueurs voisins. Indiquez-lui si un loup est présent.' },
   { id: 'loup-simple',  defaultGroup: true, label: 'Appeler les Loups-Garous',     instruction: 'Ils choisissent leur victime. Choix OBLIGATOIRE.' },
   { id: 'grand-mechant', label: 'Appeler le Grand-Méchant-Loup', instruction: 'Il peut désigner une 2ème victime seul (si aucun loup n\'est mort).' },
-  { id: 'infect-pere',  label: 'Appeler l\'Infect Père des Loups', instruction: 'Il peut infecter la victime des loups.' },
+  { id: 'infect-pere',  label: 'Appeler l\'Infect Père des Loups', instruction: 'Il désigne un joueur pour l\'infecter et le rallier à la meute (idéalement un non-dévoré).' },
   { id: 'loup-blanc',   label: 'Appeler le Loup Blanc',        instruction: 'Il peut (une nuit sur deux) éliminer un autre loup.' },
   { id: 'joueur-flute', label: 'Appeler le Joueur de Flûte',   instruction: 'Il désigne deux nouveaux joueurs à charmer.' },
   { id: 'sorciere',     label: 'Appeler la Sorcière',          instruction: 'Montrez-lui la victime. Elle peut ressusciter ou empoisonner.' },
@@ -58,7 +58,7 @@ export default function DashboardScreen() {
     winner, charmedIds, setCharmedIds,
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
-    chevalierContaminatedWolfId
+    chevalierContaminatedWolfId, chienLoupSide
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
@@ -159,14 +159,15 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (phase === 'night' && nightStepIndex === -1) {
       const activeRoles = new Set(players.filter(p => p.isAlive).map(p => p.roleId))
-      const hasWolves = players.some(p => p.isAlive && ['loup', 'solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && p.roleId !== 'joueur-flute' && p.roleId !== 'ange')
+      const hasWolves = players.some(p => p.isAlive && (['loup', 'solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected) && p.roleId !== 'joueur-flute' && p.roleId !== 'ange')
       const loupsBlancs = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
-      const otherWolves = players.filter(p => p.isAlive && ROLE_BY_ID[p.roleId]?.team === 'loup' && p.roleId !== 'loup-blanc')
+      const otherWolves = players.filter(p => p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc')
+      const deadWolves = players.filter(p => !p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected))
       const steps = NIGHT_ORDER.filter(step => {
         if (step.id === 'cupidon' && lovers.length > 0) return false
         if (step.isNight1Only && dayNumber !== 1) return false
         if (step.defaultGroup && hasWolves) return true
-        if (step.id === 'grand-mechant') return activeRoles.has('grand-mechant') && otherWolves.length > 0  // Actif si aucun loup n'est mort
+        if (step.id === 'grand-mechant') return activeRoles.has('grand-mechant') && deadWolves.length === 0  // Actif si aucun loup n'est mort
         if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && otherWolves.length > 0 && dayNumber % 2 === 0  // Une nuit sur deux
         if (step.id === 'infect-pere') return activeRoles.has('infect-pere') && !infectUsed
         if (activeRoles.has(step.id)) return true
@@ -214,7 +215,7 @@ export default function DashboardScreen() {
   }
 
   const alive           = players.filter(p => p.isAlive)
-  const wolves          = alive.filter(p => ['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team))
+  const wolves          = alive.filter(p => ['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected)
   const witchInGame     = players.some(p => p.roleId === 'sorciere')
 
   /* Handlers */
@@ -518,6 +519,7 @@ export default function DashboardScreen() {
                   <span className="role-list-name">
                     {p.isPlush && <span aria-hidden="true">🐾</span>}
                     {p.name}
+                    {p.isInfected && <span title="Infecté" style={{marginLeft: '4px', fontSize: '1.2em'}}>☣️</span>}
                   </span>
                   <span className="role-list-role">{role?.icon} {role?.name ?? '?'}</span>
                 </div>
@@ -549,16 +551,20 @@ export default function DashboardScreen() {
             const left  = dims.cx + dims.rx * Math.cos(angle)
             const top   = dims.cy + dims.ry * Math.sin(angle)
             const role  = ROLE_BY_ID[player.roleId]
-            const tc    = TEAM_CLASS[role?.team] ?? 'av-village'
-            const isSel = selectedId === player.id
-
-            // Visual feedback contextuel (Nuit)
+            const model = players.find(p => p.id === wildChildModelId);
+            const isWildChildMutated = player.roleId === 'enfant-sauvage' && model && !model.isAlive;
             const isNightTarget = nightSelection.includes(player.id)
             const isWolvesTarget = nightActions.wolvesVictim === player.id
             const isLover = lovers.includes(player.id)
             const isInfected = player.isInfected || (nightActions.infectedTargetId === player.id)
             const isWildChildModel = player.id === wildChildModelId
             const isRandomHighlighted = highlightedIds.includes(player.id)
+
+            const currentTeam = isInfected ? 'loup' 
+                              : (player.roleId === 'chien-loup' && chienLoupSide ? chienLoupSide 
+                              : (isWildChildMutated ? 'loup' : (role?.team ?? 'village')));
+            const tc    = TEAM_CLASS[currentTeam] ?? 'av-village'
+            const isSel = selectedId === player.id
 
             return (
               <div
@@ -577,18 +583,29 @@ export default function DashboardScreen() {
                 onKeyDown={e => e.key === 'Enter' && handleAvatar(player)}
               >
                 <div className={`avatar-circle ${tc}`}>
+                  {/* Team badges */}
+                  {(() => {
+                    const model = players.find(p => p.id === wildChildModelId);
+                    const isWildChildMutated = player.roleId === 'enfant-sauvage' && model && !model.isAlive;
+                    const isDogWolfLoup = player.roleId === 'chien-loup' && chienLoupSide === 'loup';
+                    
+                    if (isInfected) return <div className="av-infected-badge" title="Infection réussie" aria-hidden="true">☣️</div>;
+                    if (isWildChildMutated) return <div className="av-wildchild-badge mutated" title="Enfant Sauvage Muté" aria-hidden="true">🐺</div>;
+                    if (isDogWolfLoup) return <div className="av-dogwolf-badge" title="Chien-Loup (Camp Loup)" aria-hidden="true">🐕🐺</div>;
+                    return null;
+                  })()}
                   {isWildChildModel && <div className="av-wildchild-badge" title="Modèle de l'Enfant Sauvage" aria-hidden="true">🌿</div>}
                   {player.id === captainId && <div className="av-captain-badge" title="Capitaine" aria-hidden="true">🎖️</div>}
                   {player.isGroaning && <div className="av-temp-badge" title="L'ours grogne !">🐻</div>}
                   {isLover && <div className="av-lover-badge" title="Amoureux" aria-hidden="true">💞</div>}
                   {charmedIds.includes(player.id) && <div className="av-charmed-badge" title="Charmé" aria-hidden="true">🎶</div>}
-                  {player.isInfected && <div className="av-infected-badge" title="Infecté" aria-hidden="true">☣️</div>}
                   {seenBySeer.includes(player.id) && <div className="av-seer-badge" title="Révélé par la Voyante" aria-hidden="true">👁️</div>}
                   
                   <span aria-hidden="true">{role?.icon ?? '❓'}</span>
                   {player.isPlush && <span className="av-plush-badge" aria-hidden="true">🐾</span>}
                   
                   {nightActions.wolvesVictim === player.id && <div className="av-temp-badge" aria-hidden="true">💀</div>}
+                  {nightActions.grandMechantVictim === player.id && <div className="av-temp-badge grand-mechant-victim" aria-hidden="true" title="Victime du Grand-Méchant-Loup">💀</div>}
                   {nightActions.witchHealed && nightActions.wolvesVictim === player.id && <div className="av-temp-badge" style={{top: -65}} aria-hidden="true">💖</div>}
                   {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
                   {player.id === chevalierContaminatedWolfId && <div className="av-contaminated-badge" title="Contaminé par la rouille" aria-hidden="true">⚔️</div>}
@@ -652,7 +669,7 @@ export default function DashboardScreen() {
                   {/* ── Enfant Sauvage IA ── */}
                   {currentStepInfo.id === 'enfant-sauvage' && players.find(p => p.roleId === 'enfant-sauvage' && p.isAlive)?.isPlush && !wildChildModelId && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => p.roleId !== 'enfant-sauvage' && ROLE_BY_ID[p.roleId]?.team !== 'loup');
+                        const valids = alive.filter(p => p.roleId !== 'enfant-sauvage' && ROLE_BY_ID[p.roleId]?.team !== 'loup' && !p.isInfected);
                         if(valids.length > 0) {
                           const rnd = valids[Math.floor(Math.random() * valids.length)];
                           commitWildChildModel(rnd.id);
@@ -691,7 +708,7 @@ export default function DashboardScreen() {
                   {/* ── Loups IA ── */}
                   {currentStepInfo.id === 'loup-simple' && wolves.every(w => w.isPlush) && !nightActions.wolvesVictim && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team));
+                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected);
                         if(valids.length > 0) {
                           const rnd = valids[Math.floor(Math.random() * valids.length)];
                           useGameStore.getState().commitWolvesVictim(rnd.id);
@@ -704,7 +721,7 @@ export default function DashboardScreen() {
                   {/* ── Grand-Méchant-Loup IA ── */}
                   {currentStepInfo.id === 'grand-mechant' && players.find(p => p.roleId === 'grand-mechant' && p.isAlive)?.isPlush && !nightActions.grandMechantVictim && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && p.id !== nightActions.wolvesVictim);
+                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected && p.id !== nightActions.wolvesVictim);
                         if(valids.length > 0) {
                           const rnd = valids[Math.floor(Math.random() * valids.length)];
                           commitGrandMechantVictim(rnd.id);
@@ -715,19 +732,32 @@ export default function DashboardScreen() {
                   )}
 
                   {/* ── Infect Père IA ── */}
-                  {currentStepInfo.id === 'infect-pere' && players.find(p => p.roleId === 'infect-pere' && p.isAlive)?.isPlush && !infectUsed && nightActions.wolvesVictim && (
+                  {currentStepInfo.id === 'infect-pere' && players.find(p => p.roleId === 'infect-pere' && p.isAlive)?.isPlush && !infectUsed && (
                     <button className="header-btn" disabled={isProcessingAction} style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        // Retrait probabilité : l'Infect PNJ infecte toujours sa cible prioritaire
-                        commitInfection(nightActions.wolvesVictim);
-                        setNightSelection([nightActions.wolvesVictim]);
-                        triggerHighlight([nightActions.wolvesVictim]);
-                    }}>🎲 Infect Père IA (Infection systématique)</button>
+                        const valids = alive.filter(p => 
+                          !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && 
+                          !p.isInfected && 
+                          p.id !== nightActions.wolvesVictim &&
+                          p.id !== nightActions.grandMechantVictim
+                        );
+                        
+                        if (valids.length > 0) {
+                          const target = valids[Math.floor(Math.random() * valids.length)];
+                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir ce soir.`);
+                          commitInfection(target.id);
+                          setNightSelection([target.id]);
+                          triggerHighlight([target.id]);
+                        } else {
+                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père ne trouve aucune cible valide à infecter.`);
+                          advanceNightPhase();
+                        }
+                    }}>🎲 Infect Père IA (Dès que possible)</button>
                   )}
 
                   {/* ── Loup Blanc IA ── */}
                   {currentStepInfo.id === 'loup-blanc' && players.find(p => p.roleId === 'loup-blanc' && p.isAlive)?.isPlush && !nightActions.whiteWolfVictim && (
                     <button className="header-btn" disabled={isProcessingAction} style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const otherWolves = alive.filter(p => ROLE_BY_ID[p.roleId]?.team === 'loup' && p.roleId !== 'loup-blanc');
+                        const otherWolves = alive.filter(p => (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc');
                         if(otherWolves.length > 0) {
                           const rnd = otherWolves[Math.floor(Math.random() * otherWolves.length)];
                           commitWhiteWolfVictim(rnd.id);
@@ -1082,8 +1112,13 @@ export default function DashboardScreen() {
                   {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
                 </div>
                 <div className="pap-role">
-                  {ROLE_BY_ID[selectedPlayer.roleId]?.icon}{' '}
-                  {ROLE_BY_ID[selectedPlayer.roleId]?.name ?? '?'}
+                  {(() => {
+                    const model = players.find(x => x.id === wildChildModelId);
+                    const isMutated = selectedPlayer.roleId === 'enfant-sauvage' && model && !model.isAlive;
+                    const isDogWolfLoup = selectedPlayer.roleId === 'chien-loup' && chienLoupSide === 'loup';
+                    const suffix = selectedPlayer.isInfected ? ' (Infecté 🐺)' : (isMutated ? ' (Muté 🐺)' : (isDogWolfLoup ? ' (Camp Loup 🐺)' : ''));
+                    return (ROLE_BY_ID[selectedPlayer.roleId]?.icon ?? '❓') + ' ' + (ROLE_BY_ID[selectedPlayer.roleId]?.name ?? '?') + suffix;
+                  })()}
                 </div>
               </div>
 
@@ -1187,7 +1222,7 @@ export default function DashboardScreen() {
                          🎶 Charmer ce joueur
                        </button>
                     )}
-                    {currentNightStepId === 'grand-mechant' && selectedPlayer.isAlive && !['loup','solitaire'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && selectedPlayer.id !== nightActions.wolvesVictim && !nightActions.grandMechantVictim && (
+                    {currentNightStepId === 'grand-mechant' && selectedPlayer.isAlive && !['loup','solitaire'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && !selectedPlayer.isInfected && selectedPlayer.id !== nightActions.wolvesVictim && !nightActions.grandMechantVictim && (
                        <button className="pap-btn eliminate" onClick={() => handleNightActionSelect()}>
                          😈 2ème victime (GMM)
                        </button>
@@ -1334,11 +1369,17 @@ export default function DashboardScreen() {
               <div className="victory-survivors">
                  <h3>Survivants :</h3>
                  <ul>
-                    {players.filter(p => p.isAlive).map(p => (
-                       <li key={p.id}>
-                          {ROLE_BY_ID[p.roleId]?.icon} {p.name} ({ROLE_BY_ID[p.roleId]?.name})
-                       </li>
-                    ))}
+                    {players.filter(p => p.isAlive).map(p => {
+                       const model = players.find(x => x.id === wildChildModelId);
+                       const isMutated = p.roleId === 'enfant-sauvage' && model && !model.isAlive;
+                       const isDogWolfLoup = p.roleId === 'chien-loup' && chienLoupSide === 'loup';
+                       const suffix = p.isInfected ? ' - INFECTÉ 🐺' : (isMutated ? ' - MUTÉ 🐺' : (isDogWolfLoup ? ' - CAMP LOUP 🐺' : ''));
+                       return (
+                          <li key={p.id}>
+                             {ROLE_BY_ID[p.roleId]?.icon} {p.name} ({ROLE_BY_ID[p.roleId]?.name}{suffix})
+                          </li>
+                       );
+                    })}
                     {players.filter(p => p.isAlive).length === 0 && <li>Aucun survivant...</li>}
                  </ul>
               </div>

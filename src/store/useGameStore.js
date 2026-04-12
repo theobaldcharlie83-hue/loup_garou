@@ -586,14 +586,22 @@ export const useGameStore = create((set, get) => ({
     const toKill = []
 
     // 1. Résolution Infection (immédiat pour que eliminatePlayer voit le bon état si besoin)
-    if (nightA.wolvesVictim && nightA.infectedTargetId === nightA.wolvesVictim) {
+    if (nightA.infectedTargetId) {
+      const infected = s.players.find(p => p.id === nightA.infectedTargetId);
       set((state) => ({
         players: state.players.map(p => 
-          p.id === nightA.wolvesVictim ? { ...p, isInfected: true } : p
+          p.id === nightA.infectedTargetId ? { ...p, isInfected: true } : p
         ),
         infectUsed: true
       }));
-    } else if (nightA.wolvesVictim && !nightA.witchHealed) {
+      if (nightA.infectedTargetId === nightA.wolvesVictim) {
+        s.pushToJournal(`L'infection a réussi ! ${infected?.name} a survécu à l'attaque et rejoint la meute.`);
+      } else {
+        s.pushToJournal(`L'infection a réussi ! ${infected?.name} rejoint secrètement la meute.`);
+      }
+    }
+
+    if (nightA.wolvesVictim && !nightA.witchHealed && nightA.wolvesVictim !== nightA.infectedTargetId) {
       toKill.push({ id: nightA.wolvesVictim, by: 'wolves' })
     }
 
