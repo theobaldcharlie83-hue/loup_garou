@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'favicon.png', 'icon-192.png', 'icon-512.png', 'icons.svg'],
+      includeAssets: ['favicon.svg', 'favicon.png', 'favicon.ico', 'icon-192.png', 'icon-512.png', 'icons.svg'],
       manifest: {
         name: 'Le Grimoire du Village',
         short_name: 'Le Grimoire',
