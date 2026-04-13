@@ -20,22 +20,26 @@ const PHASE_META = {
   interrogation: { label: 'Interrogatoire',    icon: '🧸' },
 }
 
-/* Ordre officiel de nuit — Best Of */
+/* Ordre officiel de nuit — Best Of (règles officielles complètes) */
 const NIGHT_ORDER = [
-  // Nuit 1 seulement
-  { id: 'cupidon',       isNight1Only: true,  label: 'Appeler Cupidon',              instruction: 'Il désigne les deux amoureux.' },
-  { id: 'chien-loup',   isNight1Only: true,  label: 'Appeler le Chien-Loup',        instruction: 'Il choisit son camp : Villageois ou Loup-Garou.' },
-  { id: 'enfant-sauvage', isNight1Only: true, label: 'Appeler l\'Enfant Sauvage',   instruction: 'Il désigne son modèle de rôle — il deviendra loup si ce joueur meurt.' },
-  // Chaque nuit
-  { id: 'voyante',       label: 'Appeler la Voyante',          instruction: 'Elle désigne un joueur pour voir sa carte.' },
-  { id: 'renard',        label: 'Appeler le Renard',            instruction: 'Il analyse un groupe de 3 joueurs voisins. Indiquez-lui si un loup est présent.' },
-  { id: 'loup-simple',  defaultGroup: true, label: 'Appeler les Loups-Garous',     instruction: 'Ils choisissent leur victime. Choix OBLIGATOIRE.' },
-  { id: 'grand-mechant', label: 'Appeler le Grand-Méchant-Loup', instruction: 'Il peut désigner une 2ème victime seul (si aucun loup n\'est mort).' },
-  { id: 'infect-pere',  label: 'Appeler l\'Infect Père des Loups', instruction: 'Il désigne un joueur pour l\'infecter et le rallier à la meute (idéalement un non-dévoré).' },
-  { id: 'loup-blanc',   label: 'Appeler le Loup Blanc',        instruction: 'Il peut (une nuit sur deux) éliminer un autre loup.' },
-  { id: 'joueur-flute', label: 'Appeler le Joueur de Flûte',   instruction: 'Il désigne deux nouveaux joueurs à charmer.' },
-  { id: 'sorciere',     label: 'Appeler la Sorcière',          instruction: 'Montrez-lui la victime. Elle peut ressusciter ou empoisonner.' },
-  { id: 'corbeau',      label: 'Appeler le Corbeau',           instruction: 'Il désigne un joueur qui recevra 2 voix contre lui au tribunal.' },
+  // ── NUIT 1 SEULEMENT ──────────────────────────────────────────────────────
+  { id: 'cupidon',         isNight1Only: true,  label: 'Appeler Cupidon',                      instruction: 'Il désigne en secret les deux Amoureux. Il les réveille dos à dos ou leur montre leur partenaire.' },
+  { id: 'amoureux',        isNight1Only: true,  label: 'Les Amoureux se reconnaissent',         instruction: 'Les deux Amoureux ouvrent les yeux et découvrent leur partenaire. Ils referment les yeux en silence.' },
+  { id: 'voyante',         isNight1Only: false, label: 'Appeler la Voyante',                    instruction: 'Elle désigne un joueur. Montrez-lui sa carte de rôle en secret.' },
+  { id: 'soeurs',          isNight1Only: true,  label: 'Appeler les Sœurs',                     instruction: 'Les deux Sœurs ouvrent les yeux et se reconnaissent mutuellement, sans parler.' },
+  { id: 'enfant-sauvage',  isNight1Only: true,  label: 'Appeler l\'Enfant Sauvage',             instruction: 'Il désigne son modèle de rôle — il deviendra Loup-Garou si ce joueur vient à mourir.' },
+  { id: 'montreur-ours',   isNight1Only: true,  label: 'Appeler le Montreur d\'Ours',           instruction: 'Il ouvre les yeux pour repérer sa position dans le cercle. Chaque matin, son ours grognera si un voisin immédiat est Loup-Garou.' },
+  { id: 'chien-loup',      isNight1Only: true,  label: 'Appeler le Chien-Loup',                 instruction: 'Il choisit son camp : Villageois ou Loup-Garou. S\'il choisit Loup, il rejoindra la meute maintenant.' },
+  // ── CHAQUE NUIT ───────────────────────────────────────────────────────────
+  { id: 'loup-simple',     isNight1Only: false, defaultGroup: true, label: 'Appeler les Loups-Garous', instruction: 'Tous les Loups se réveillent et désignent leur victime. Inclut le Chien-Loup (si camp Loup), l\'Enfant Sauvage (si modèle mort), le joueur infecté. Choix OBLIGATOIRE.' },
+  { id: 'infect-pere',     isNight1Only: false, label: 'Appeler l\'Infect Père des Loups (seul)', instruction: 'Il se réveille seul. Il peut infecter la victime des Loups pour la rallier à la meute (une seule infection possible sur toute la partie).' },
+  { id: 'grand-mechant',   isNight1Only: false, label: 'Appeler le Grand-Méchant-Loup (seul)',   instruction: 'Il se réveille seul. Il peut désigner une 2ème victime indépendante — uniquement si aucun Loup-Garou n\'est encore mort.' },
+  { id: 'loup-blanc',      isNight1Only: false, label: 'Appeler le Loup-Garou Blanc',            instruction: 'Une nuit sur deux, il peut éliminer un autre Loup-Garou de la meute pour rester le seul survivant.' },
+  { id: 'sorciere',        isNight1Only: false, label: 'Appeler la Sorcière',                    instruction: 'Montrez-lui la victime des Loups. Elle peut utiliser sa potion de Vie (sauver) et/ou sa potion de Mort (empoisonner un joueur).' },
+  { id: 'renard',          isNight1Only: false, label: 'Appeler le Renard',                      instruction: 'Il désigne un groupe de 3 joueurs voisins. Faites-lui signe (oui/non) si un Loup-Garou est parmi eux.' },
+  { id: 'joueur-flute',    isNight1Only: false, label: 'Appeler le Joueur de Flûte',             instruction: 'Il désigne 2 nouveaux joueurs à charmer. Il ne peut pas charmer le même joueur deux fois.' },
+  { id: 'joueurs-charmes', isNight1Only: false, label: 'Les Joueurs Charmés se reconnaissent',   instruction: 'Tous les joueurs charmés ouvrent les yeux et se reconnaissent silencieusement entre eux.' },
+  { id: 'corbeau',         isNight1Only: false, label: 'Appeler le Corbeau',                     instruction: 'Il désigne en secret un joueur qui recevra 2 voix supplémentaires contre lui lors du prochain tribunal.' },
 ]
 
 export default function DashboardScreen() {
@@ -58,7 +62,8 @@ export default function DashboardScreen() {
     winner, charmedIds, setCharmedIds,
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
-    chevalierContaminatedWolfId, chienLoupSide
+    chevalierContaminatedWolfId, chienLoupSide,
+    foxPowerLost, commitFoxAction
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
@@ -75,6 +80,8 @@ export default function DashboardScreen() {
   const [isProcessingAction, setIsProcessingAction] = useState(false) // Debounce global pour les animations
   const [captainModal, setCaptainModal]           = useState(false)   // Modale "désignez un capitaine"
   const [interrogationModal, setInterrogationModal] = useState(null)  // Modale de confirmation interrogatoire
+  const [showBearModal, setShowBearModal] = useState(false)        // Modale d'alerte pour le grognement de l'ours
+  const [hasShownBearGrowl, setHasShownBearGrowl] = useState(false) // Pour ne l'afficher qu'une fois par jour
   
   // Modal QA
   const [qaModalPlushId, setQaModalPlushId] = useState(null)
@@ -122,6 +129,20 @@ export default function DashboardScreen() {
     prevPlayersRef.current = players;
   }, [players, chasseurPendingId]);
 
+  // Détection du grognement de l'ours au réveil
+  useEffect(() => {
+    if (phase === 'night') {
+      setHasShownBearGrowl(false);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === 'day' && players.some(p => p.isGroaning) && !hasShownBearGrowl) {
+      setShowBearModal(true);
+      setHasShownBearGrowl(true);
+    }
+  }, [phase, players, hasShownBearGrowl]);
+
   // Automatisation du tir du Chasseur si c'est un PNJ (Doudou)
   useEffect(() => {
     if (chasseurPendingId) {
@@ -155,27 +176,65 @@ export default function DashboardScreen() {
   // Automatisation du Tie-break si le Capitaine est un PNJ
   // Automatisation du Tie-break supprimée pour permettre un déclenchement manuel par le MJ.
 
-  /* Calcul des étapes de la nuit */
+  /* Calcul des étapes de la nuit — ordre officiel Best Of */
   useEffect(() => {
     if (phase === 'night' && nightStepIndex === -1) {
-      const activeRoles = new Set(players.filter(p => p.isAlive).map(p => p.roleId))
-      const hasWolves = players.some(p => p.isAlive && (['loup', 'solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected) && p.roleId !== 'joueur-flute' && p.roleId !== 'ange')
-      const loupsBlancs = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
-      const otherWolves = players.filter(p => p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc')
-      const deadWolves = players.filter(p => !p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected))
+      const activeRoles  = new Set(players.filter(p => p.isAlive).map(p => p.roleId))
+      const hasCupidon   = activeRoles.has('cupidon')
+      const hasWolves    = players.some(p =>
+        p.isAlive &&
+        (['loup', 'solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected) &&
+        p.roleId !== 'joueur-flute' &&
+        p.roleId !== 'ange'
+      )
+      const loupsBlancs  = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
+      const otherWolves  = players.filter(p => p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc')
+      const deadWolves   = players.filter(p => !p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected))
+
       const steps = NIGHT_ORDER.filter(step => {
-        if (step.id === 'cupidon' && lovers.length > 0) return false
+        // Étapes Nuit 1 uniquement : bloquer les nuits suivantes
         if (step.isNight1Only && dayNumber !== 1) return false
-        if (step.defaultGroup && hasWolves) return true
-        if (step.id === 'grand-mechant') return activeRoles.has('grand-mechant') && deadWolves.length === 0  // Actif si aucun loup n'est mort
-        if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && otherWolves.length > 0 && dayNumber % 2 === 0  // Une nuit sur deux
+
+        // Cupidon : skip si les amoureux sont déjà désignés
+        if (step.id === 'cupidon' && lovers.length > 0) return false
+
+        // Amoureux : Nuit 1, seulement si Cupidon est en jeu (les amoureux se découvrent après lui)
+        if (step.id === 'amoureux') return dayNumber === 1 && (hasCupidon || lovers.length === 2)
+
+        // Sœurs : Nuit 1 si elles sont en jeu
+        if (step.id === 'soeurs') return dayNumber === 1 && activeRoles.has('soeurs')
+
+        // Montreur d'Ours : Nuit 1 uniquement (repérage position)
+        if (step.id === 'montreur-ours') return dayNumber === 1 && activeRoles.has('montreur-ours')
+
+        // Chien-Loup : Nuit 1 uniquement (choix de camp)
+        if (step.id === 'chien-loup') return dayNumber === 1 && activeRoles.has('chien-loup')
+
+        // Loups (groupe) : tous les loups vivants
+        if (step.defaultGroup) return hasWolves
+
+        // Infect Père des Loups : tant qu'il n'a pas encore infecté
         if (step.id === 'infect-pere') return activeRoles.has('infect-pere') && !infectUsed
+
+        // Grand-Méchant-Loup : tant qu'aucun Loup-Garou n'est mort
+        if (step.id === 'grand-mechant') return activeRoles.has('grand-mechant') && deadWolves.length === 0
+
+        // Loup Blanc : une nuit sur deux, seulement s'il y a d'autres loups
+        if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && otherWolves.length > 0 && dayNumber % 2 === 0
+
+        // Joueurs charmés : seulement si le joueur de flûte est vivant et a déjà charmé
+        if (step.id === 'joueurs-charmes') return charmedIds.length > 0 && players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
+
+        // Corbeau : chaque nuit s'il est en jeu
+        if (step.id === 'corbeau') return activeRoles.has('corbeau')
+
+        // Cas général : le rôle est en vie
         if (activeRoles.has(step.id)) return true
         return false
       })
-      
-      steps.push({ id: 'fin-nuit', isEnd: true, label: 'Le Soleil se Lève', instruction: 'Les actions de la nuit sont réglées. Cliquez ci-dessous pour annoncer les événements.' })
-      
+
+      steps.push({ id: 'fin-nuit', isEnd: true, label: 'Le Soleil se Lève', instruction: 'Les actions de la nuit sont réglées. Cliquez ci-dessous pour annoncer les événements de la nuit au village.' })
+
       setActiveNightSteps(steps)
       setNightStepIndex(0)
       if (nightStepIndex !== -1) {
@@ -184,7 +243,7 @@ export default function DashboardScreen() {
       }
       setNightSelection([])
     }
-  }, [phase, dayNumber]) // Restauration des dépendances originales pour éviter les resets mid-nuit
+  }, [phase, dayNumber]) // eslint-disable-line react-hooks/exhaustive-deps — dépendances volontairement minimales pour éviter les resets mid-nuit
 
   // Reset séparé pour le verrou du bouton IA de la sorcière
   useEffect(() => {
@@ -318,8 +377,28 @@ export default function DashboardScreen() {
     } else if (currentNightStepId === 'chien-loup') {
       useGameStore.getState().setChienLoupSide(actionType);
       setNightSelection(['done']);
+      // Feedback immédiat dans le journal via une micro-notification ou highlight
+      triggerHighlight([selectedPlayer.id]);
     } else if (currentNightStepId === 'renard') {
-      setNightSelection([selectedPlayer.id]) // Le MJ cible un joueur central
+      // Le Renard choisit le joueur central.
+      // On calcule les voisins pour l'affichage au MJ.
+      const alivePlayers = players.filter(p => p.isAlive);
+      const cIdx = alivePlayers.findIndex(p => p.id === selectedPlayer.id);
+      if (cIdx !== -1) {
+        const left = alivePlayers[(cIdx - 1 + alivePlayers.length) % alivePlayers.length];
+        const right = alivePlayers[(cIdx + 1) % alivePlayers.length];
+        const groupIds = [left.id, selectedPlayer.id, right.id];
+        
+        const isWolf = (p) => {
+          const r = ROLE_BY_ID[p.roleId];
+          return r?.team === 'loup' || r?.team === 'solitaire' || p.isInfected;
+        };
+        const hasWolf = groupIds.some(id => isWolf(players.find(p => p.id === id)));
+        
+        commitFoxAction(selectedPlayer.id, hasWolf, groupIds);
+        setNightSelection(groupIds);
+        triggerHighlight(groupIds);
+      }
     }
 
     setSelectedId(null)
@@ -377,10 +456,30 @@ export default function DashboardScreen() {
         nightSelection.forEach(id => { if(!newCharmed.includes(id)) newCharmed.push(id) })
         setCharmedIds(newCharmed)
         pushToJournal(`Le Joueur de Flûte a charmé de nouvelles victimes...`)
-        useGameStore.getState().checkGameOver()
       } else if (currentNightStepId === 'chien-loup' && nightSelection.length > 0) {
         const side = useGameStore.getState().chienLoupSide;
         pushToJournal(`Le Chien-Loup a choisi son camp : ${side === 'loup' ? 'Loups-Garous' : 'Villageois'}.`);
+      } else if (currentNightStepId === 'amoureux') {
+        if (lovers.length === 2) {
+          const p1 = players.find(x => x.id === lovers[0]);
+          const p2 = players.find(x => x.id === lovers[1]);
+          pushToJournal(`💞 Les Amoureux (${p1?.name} & ${p2?.name}) se sont reconnus dans les ténèbres.`);
+        }
+      } else if (currentNightStepId === 'soeurs') {
+        pushToJournal(`👯 Les deux Sœurs ont ouvert les yeux et se sont reconnues en silence.`);
+      } else if (currentNightStepId === 'montreur-ours') {
+        pushToJournal(`🐻 Le Montreur d'Ours a repéré sa position dans le cercle du village.`);
+      } else if (currentNightStepId === 'joueurs-charmes') {
+        const charmedNames = players.filter(p => charmedIds.includes(p.id) && p.isAlive).map(p => p.name).join(', ');
+        pushToJournal(`🎶 Les joueurs charmés (${charmedNames}) se sont reconnus silencieusement.`);
+      } else if (currentNightStepId === 'renard') {
+        if (nightSelection.length === 3) {
+          const central = players.find(p => p.id === nightActions.foxCentralId);
+          const hasWolf = nightActions.foxHasWolf;
+          pushToJournal(`🦊 Le Renard a flairé le groupe autour de ${central?.name}. Résultat : ${hasWolf ? 'Positif (🐺 présent)' : 'Négatif (Villageois innocents)'}.`);
+        } else {
+          pushToJournal(`🦊 Le Renard a choisi de ne pas utiliser son flair cette nuit.`);
+        }
       }
 
       setNightSelection([]);
@@ -591,12 +690,17 @@ export default function DashboardScreen() {
                     
                     if (isInfected) return <div className="av-infected-badge" title="Infection réussie" aria-hidden="true">☣️</div>;
                     if (isWildChildMutated) return <div className="av-wildchild-badge mutated" title="Enfant Sauvage Muté" aria-hidden="true">🐺</div>;
-                    if (isDogWolfLoup) return <div className="av-dogwolf-badge" title="Chien-Loup (Camp Loup)" aria-hidden="true">🐕🐺</div>;
+                    
+                    if (player.roleId === 'chien-loup') {
+                      if (chienLoupSide === 'loup') return <div className="av-dogwolf-badge camp-loup" title="Chien-Loup (Rallié aux Loups)" aria-hidden="true">🐺</div>;
+                      if (chienLoupSide === 'village') return <div className="av-dogwolf-badge camp-village" title="Chien-Loup (Resté Villageois)" aria-hidden="true">🏘️</div>;
+                    }
                     return null;
                   })()}
                   {isWildChildModel && <div className="av-wildchild-badge" title="Modèle de l'Enfant Sauvage" aria-hidden="true">🌿</div>}
                   {player.id === captainId && <div className="av-captain-badge" title="Capitaine" aria-hidden="true">🎖️</div>}
                   {player.isGroaning && <div className="av-temp-badge" title="L'ours grogne !">🐻</div>}
+                  {player.isBearSuspected && <div className="av-temp-badge" style={{ top: -35 }} title="Suspecté par l'Ours">🐻⚠️</div>}
                   {isLover && <div className="av-lover-badge" title="Amoureux" aria-hidden="true">💞</div>}
                   {charmedIds.includes(player.id) && <div className="av-charmed-badge" title="Charmé" aria-hidden="true">🎶</div>}
                   {seenBySeer.includes(player.id) && <div className="av-seer-badge" title="Révélé par la Voyante" aria-hidden="true">👁️</div>}
@@ -631,6 +735,14 @@ export default function DashboardScreen() {
           {phase === 'preparation' && (
             <div className="night-step-card end-night">
               <h3>Répartition et Vérification</h3>
+              {players.some(p => p.roleId === 'ange') && (
+                <div style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid #ffd700', borderRadius: 8, padding: '10px 14px', marginBottom: 16, textAlign: 'left' }}>
+                  <p style={{ color: '#ffd700', margin: 0, fontSize: '0.9rem' }}>
+                    ⚠️ <strong>Règle Ange</strong> : L'Ange est en jeu !<br/>
+                    La partie doit commencer par un <strong>débat du village</strong> suivi d'un <strong>vote éliminatoire</strong> avant la première nuit.
+                  </p>
+                </div>
+              )}
               <p style={{marginBottom: 20}}>Cliquez sur un humain pour intervertir secrètement son rôle. Quand tout est prêt, lancez la partie !</p>
               <button className="header-btn primary-action" style={{ alignSelf: 'center', fontSize: '1.2rem', padding: '12px 24px' }} onClick={handlePhaseToggle}>
                 <span aria-hidden="true">☀️ </span> Lancer la Partie (Nuit 1)
@@ -659,11 +771,13 @@ export default function DashboardScreen() {
 
                   {/* ── Chien-Loup IA ── */}
                   {currentStepInfo.id === 'chien-loup' && players.find(p => p.roleId === 'chien-loup' && p.isAlive)?.isPlush && nightSelection.length === 0 && (
-                    <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
+                    <button className="header-btn ai-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
                         const side = Math.random() < 0.5 ? 'village' : 'loup';
                         useGameStore.getState().setChienLoupSide(side);
                         setNightSelection(['done']);
-                    }}>🎲 Chien-Loup IA</button>
+                        const dog = players.find(p => p.roleId === 'chien-loup');
+                        if (dog) triggerHighlight([dog.id]);
+                    }}>✨ IA : Le Chien-Loup choisit son destin</button>
                   )}
 
                   {/* ── Enfant Sauvage IA ── */}
@@ -677,6 +791,50 @@ export default function DashboardScreen() {
                           triggerHighlight([rnd.id]);
                         }
                     }}>🎲 Enfant Sauvage IA</button>
+                  )}
+
+                  {/* ── Renard IA ── */}
+                  {currentStepInfo.id === 'renard' && players.find(p => p.roleId === 'renard' && p.isAlive)?.isPlush && nightSelection.length === 0 && !foxPowerLost && (
+                    <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
+                        const valids = alive.filter(p => p.roleId !== 'renard');
+                        if(valids.length > 0) {
+                          const rnd = valids[Math.floor(Math.random() * valids.length)];
+                          // On relance la logique de handleNightActionSelect pour ce joueur
+                          const alivePlayers = players.filter(p => p.isAlive);
+                          const cIdx = alivePlayers.findIndex(p => p.id === rnd.id);
+                          if (cIdx !== -1) {
+                            const left = alivePlayers[(cIdx - 1 + alivePlayers.length) % alivePlayers.length];
+                            const right = alivePlayers[(cIdx + 1) % alivePlayers.length];
+                            const groupIds = [left.id, rnd.id, right.id];
+                            const isWolf = (p) => {
+                              const r = ROLE_BY_ID[p.roleId];
+                              return r?.team === 'loup' || r?.team === 'solitaire' || p.isInfected;
+                            };
+                            const hasWolf = groupIds.some(id => isWolf(players.find(p => p.id === id)));
+                            commitFoxAction(rnd.id, hasWolf, groupIds);
+                            setNightSelection(groupIds);
+                            triggerHighlight(groupIds);
+                          }
+                        }
+                    }}>🎲 Renard IA (Flair intelligent)</button>
+                  )}
+
+                  {/* ── Renard : Affichage résultat Flair ── */}
+                  {currentStepInfo.id === 'renard' && (
+                    <div style={{ background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+                      {foxPowerLost ? (
+                        <p style={{ margin: 0, color: '#ff6b6b', fontWeight: 'bold' }}>❌ Pouvoir perdu (Flair épuisé par une erreur passée).</p>
+                      ) : nightSelection.length === 3 ? (
+                        <>
+                          <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem' }}>🔍 Groupe analysé : <strong>{nightSelection.map(id => players.find(p => p.id === id)?.name).join(', ')}</strong></p>
+                          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: nightActions.foxHasWolf ? '#ff4d4d' : '#4dff88' }}>
+                            {nightActions.foxHasWolf ? '🐺 OUI (Signe affirmatif)' : '✅ NON (Signe négatif)'}
+                          </p>
+                        </>
+                      ) : (
+                        <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Sélectionnez un joueur pour analyser son groupe de 3 (lui + ses 2 voisins vivants).</p>
+                      )}
+                    </div>
                   )}
 
                   {/* ── Voyante IA ── */}
@@ -694,28 +852,30 @@ export default function DashboardScreen() {
                     }}>🎲 Voyante IA</button>
                   )}
 
-                  {/* ── Renard IA ── */}
-                  {currentStepInfo.id === 'renard' && players.find(p => p.roleId === 'renard' && p.isAlive)?.isPlush && nightSelection.length === 0 && (
-                    <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => p.roleId !== 'renard');
-                        if(valids.length > 0) {
-                          const rnd = valids[Math.floor(Math.random() * valids.length)];
-                          setNightSelection([rnd.id]);
-                        }
-                    }}>🎲 Renard IA (Groupe analysé)</button>
-                  )}
 
                   {/* ── Loups IA ── */}
                   {currentStepInfo.id === 'loup-simple' && wolves.every(w => w.isPlush) && !nightActions.wolvesVictim && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
                         const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected);
                         if(valids.length > 0) {
-                          const rnd = valids[Math.floor(Math.random() * valids.length)];
-                          useGameStore.getState().commitWolvesVictim(rnd.id);
-                          setNightSelection([rnd.id]);
-                          triggerHighlight([rnd.id]);
+                          let target = valids[Math.floor(Math.random() * valids.length)];
+                          
+                          // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
+                          if (alive.length <= 4 && captainId) {
+                            const cap = valids.find(v => v.id === captainId);
+                            if (cap) {
+                              const partnerId = lovers.find(id => id !== captainId);
+                              const partner = partnerId ? alive.find(p => p.id === partnerId) : null;
+                              const isPartnerWolf = partner && (['loup', 'solitaire'].includes(ROLE_BY_ID[partner.roleId]?.team) || partner.isInfected);
+                              if (!isPartnerWolf) target = cap;
+                            }
+                          }
+
+                          useGameStore.getState().commitWolvesVictim(target.id);
+                          setNightSelection([target.id]);
+                          triggerHighlight([target.id]);
                         }
-                    }}>🎲 Loups IA (Victime Aléatoire)</button>
+                    }}>🎲 Loups IA {alive.length <= 4 ? '(Stratégie Capitaine)' : '(Victime Aléatoire)'}</button>
                   )}
 
                   {/* ── Grand-Méchant-Loup IA ── */}
@@ -723,12 +883,24 @@ export default function DashboardScreen() {
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
                         const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected && p.id !== nightActions.wolvesVictim);
                         if(valids.length > 0) {
-                          const rnd = valids[Math.floor(Math.random() * valids.length)];
-                          commitGrandMechantVictim(rnd.id);
-                          setNightSelection([rnd.id]);
-                          triggerHighlight([rnd.id]);
+                          let target = valids[Math.floor(Math.random() * valids.length)];
+
+                          // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
+                          if (alive.length <= 4 && captainId) {
+                            const cap = valids.find(v => v.id === captainId);
+                            if (cap) {
+                               const partnerId = lovers.find(id => id !== captainId);
+                               const partner = partnerId ? alive.find(p => p.id === partnerId) : null;
+                               const isPartnerWolf = partner && (['loup', 'solitaire'].includes(ROLE_BY_ID[partner.roleId]?.team) || partner.isInfected);
+                               if (!isPartnerWolf) target = cap;
+                            }
+                          }
+
+                          commitGrandMechantVictim(target.id);
+                          setNightSelection([target.id]);
+                          triggerHighlight([target.id]);
                         }
-                    }}>🎲 Grand-Méchant-Loup IA</button>
+                    }}>🎲 Grand-Méchant-Loup IA {alive.length <= 4 ? '(Stratégie Capitaine)' : ''}</button>
                   )}
 
                   {/* ── Infect Père IA ── */}
@@ -742,8 +914,20 @@ export default function DashboardScreen() {
                         );
                         
                         if (valids.length > 0) {
-                          const target = valids[Math.floor(Math.random() * valids.length)];
-                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir ce soir.`);
+                          let target = valids[Math.floor(Math.random() * valids.length)];
+
+                          // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
+                          if (alive.length <= 4 && captainId) {
+                            const cap = valids.find(v => v.id === captainId);
+                            if (cap) {
+                              const partnerId = lovers.find(id => id !== captainId);
+                              const partner = partnerId ? alive.find(p => p.id === partnerId) : null;
+                              const isPartnerWolf = partner && (['loup', 'solitaire'].includes(ROLE_BY_ID[partner.roleId]?.team) || partner.isInfected);
+                              if (!isPartnerWolf) target = cap;
+                            }
+                          }
+
+                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir${alive.length <= 4 ? ' stratégiquement sur le Capitaine' : ''}.`);
                           commitInfection(target.id);
                           setNightSelection([target.id]);
                           triggerHighlight([target.id]);
@@ -751,7 +935,7 @@ export default function DashboardScreen() {
                           useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père ne trouve aucune cible valide à infecter.`);
                           advanceNightPhase();
                         }
-                    }}>🎲 Infect Père IA (Dès que possible)</button>
+                    }}>🎲 Infect Père IA {alive.length <= 4 ? '(Stratégie Capitaine)' : '(Dès que possible)'}</button>
                   )}
 
                   {/* ── Loup Blanc IA ── */}
@@ -845,15 +1029,62 @@ export default function DashboardScreen() {
                   {/* ── Corbeau IA ── */}
                   {currentStepInfo.id === 'corbeau' && players.find(p => p.roleId === 'corbeau' && p.isAlive)?.isPlush && !nightActions.corbeauTargetId && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => ROLE_BY_ID[p.roleId]?.id !== 'corbeau');
+                        const valids = alive.filter(p => p.roleId !== 'corbeau');
                         if(valids.length > 0) {
-                          // Stratégie simple : cible aléatoire pour l'instant ou celui avec le moins de confiance (si implémenté)
                           const rnd = valids[Math.floor(Math.random() * valids.length)];
                           useGameStore.getState().commitCorbeauTarget(rnd.id);
                           setNightSelection([rnd.id]);
                           triggerHighlight([rnd.id]);
                         }
                     }}>🎲 Corbeau IA</button>
+                  )}
+
+                  {/* ── Amoureux : révélation du couple ── */}
+                  {currentStepInfo.id === 'amoureux' && (
+                    <div style={{ background: 'rgba(255,100,150,0.12)', border: '1px solid rgba(255,100,150,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+                      {lovers.length === 2 ? (
+                        <>
+                          <p style={{ margin: '0 0 6px 0', fontSize: '1rem' }}>💞 Les Amoureux sont :</p>
+                          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem', color: '#ff8fab' }}>
+                            {players.find(p => p.id === lovers[0])?.name} &amp; {players.find(p => p.id === lovers[1])?.name}
+                          </p>
+                          <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', opacity: 0.7 }}>Révélez-leur mutuellement leur partenaire.</p>
+                        </>
+                      ) : (
+                        <p style={{ margin: 0, color: '#aaa', fontStyle: 'italic', fontSize: '0.9rem' }}>⏳ En attente que Cupidon désigne les amoureux...</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Sœurs : info reconnaissance ── */}
+                  {currentStepInfo.id === 'soeurs' && (
+                    <div style={{ background: 'rgba(180,130,255,0.1)', border: '1px solid rgba(180,130,255,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
+                        👯 Les deux <strong>Sœurs</strong> ({players.filter(p => p.roleId === 'soeurs' && p.isAlive).map(p => p.name).join(' & ') || '—'})
+                        ouvrent les yeux et se reconnaissent.</p>
+                    </div>
+                  )}
+
+                  {/* ── Montreur d'Ours : info position ── */}
+                  {currentStepInfo.id === 'montreur-ours' && (
+                    <div style={{ background: 'rgba(180,120,60,0.12)', border: '1px solid rgba(180,120,60,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
+                        🐻 Le <strong>Montreur d'Ours</strong> ({players.find(p => p.roleId === 'montreur-ours' && p.isAlive)?.name || '—'}) repère sa position.
+                        Son ours grognera chaque matin si l'un de ses voisins est Loup-Garou.</p>
+                    </div>
+                  )}
+
+                  {/* ── Joueurs charmés : reconnaissance mutuelle ── */}
+                  {currentStepInfo.id === 'joueurs-charmes' && (
+                    <div style={{ background: 'rgba(100,200,255,0.1)', border: '1px solid rgba(100,200,255,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'left' }}>
+                      <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>🎶 Joueurs charmés ({players.filter(p => charmedIds.includes(p.id) && p.isAlive).length}) :</p>
+                      <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '0.9rem', opacity: 0.9 }}>
+                        {players.filter(p => charmedIds.includes(p.id) && p.isAlive).map(p => (
+                          <li key={p.id}>{ROLE_BY_ID[p.roleId]?.icon} {p.name}</li>
+                        ))}
+                      </ul>
+                      <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', opacity: 0.6 }}>Ils ouvrent les yeux, se reconnaissent, et se rendorment sans parler.</p>
+                    </div>
                   )}
 
                   {/* ── Bouton Passer ── */}
@@ -868,9 +1099,15 @@ export default function DashboardScreen() {
                       (currentStepInfo.id === 'joueur-flute' && nightSelection.length < Math.min(2, alive.filter(p => p.roleId !== 'joueur-flute' && !charmedIds.includes(p.id)).length))
                     }
                   >
-                    {currentStepInfo.id === 'cupidon' && nightSelection.length === 2 ? '❤️ Valider le couple' 
+                    {currentStepInfo.id === 'cupidon' && nightSelection.length === 2 ? '❤️ Valider le couple'
                       : currentStepInfo.id === 'joueur-flute' ? '🎶 Charmer les joueurs'
                       : currentStepInfo.id === 'enfant-sauvage' ? '🌿 Valider le Modèle'
+                      : currentStepInfo.id === 'corbeau' && nightSelection.length === 1 ? '🐦 Confirmer la désignation'
+                      : currentStepInfo.id === 'amoureux' ? '💞 Les amoureux se sont vus'
+                      : currentStepInfo.id === 'soeurs' ? '👯 Les Sœurs se sont reconnues'
+                      : currentStepInfo.id === 'montreur-ours' ? '🐻 Position mémorisée'
+                      : currentStepInfo.id === 'joueurs-charmes' ? '🎶 Reconnaissance terminée'
+                      : currentStepInfo.id === 'renard' ? (nightSelection.length === 3 ? '🦊 Valider le flair' : '🦊 Ne pas utiliser son flair')
                       : 'Passer à la suite'}
                   </button>
                 </>
@@ -1116,7 +1353,8 @@ export default function DashboardScreen() {
                     const model = players.find(x => x.id === wildChildModelId);
                     const isMutated = selectedPlayer.roleId === 'enfant-sauvage' && model && !model.isAlive;
                     const isDogWolfLoup = selectedPlayer.roleId === 'chien-loup' && chienLoupSide === 'loup';
-                    const suffix = selectedPlayer.isInfected ? ' (Infecté 🐺)' : (isMutated ? ' (Muté 🐺)' : (isDogWolfLoup ? ' (Camp Loup 🐺)' : ''));
+                    const isDogWolfVillage = selectedPlayer.roleId === 'chien-loup' && chienLoupSide === 'village';
+                    const suffix = selectedPlayer.isInfected ? ' (Infecté 🐺)' : (isMutated ? ' (Muté 🐺)' : (isDogWolfLoup ? ' (Camp Loup 🐺)' : (isDogWolfVillage ? ' (Camp Village 🏘️)' : '')));
                     return (ROLE_BY_ID[selectedPlayer.roleId]?.icon ?? '❓') + ' ' + (ROLE_BY_ID[selectedPlayer.roleId]?.name ?? '?') + suffix;
                   })()}
                 </div>
@@ -1212,9 +1450,13 @@ export default function DashboardScreen() {
                        </button>
                     )}
                     {currentNightStepId === 'chien-loup' && selectedPlayer.roleId === 'chien-loup' && (
-                       <div style={{display:'flex', gap: 5}}>
-                         <button className="pap-btn save" onClick={() => handleNightActionSelect('village')}>🏘️ Village</button>
-                         <button className="pap-btn eliminate" onClick={() => handleNightActionSelect('loup')}>🐺 Loup</button>
+                       <div style={{display:'flex', gap: 10, marginTop: 5}}>
+                         <button className="pap-btn save choice-btn" onClick={() => handleNightActionSelect('village')}>
+                            <span style={{fontSize: '1.2rem', marginRight: 8}}>🏘️</span> Devenir Villageois
+                         </button>
+                         <button className="pap-btn eliminate choice-btn" onClick={() => handleNightActionSelect('loup')}>
+                            <span style={{fontSize: '1.2rem', marginRight: 8}}>🐺</span> Rejoindre la meute
+                         </button>
                        </div>
                     )}
                     {currentNightStepId === 'joueur-flute' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'joueur-flute' && !charmedIds.includes(selectedPlayer.id) && (
@@ -1321,6 +1563,25 @@ export default function DashboardScreen() {
                    </div>
                 </div>
              </div>
+          )}
+
+          {/* MODALE GROGNEMENT DE L'OURS */}
+          {showBearModal && (
+            <div className="qa-modal-overlay bear-growl-overlay" onClick={() => setShowBearModal(false)}>
+              <div className="qa-modal-content bear-growl-modal" onClick={e => e.stopPropagation()}>
+                <div className="bear-icon-large">🐻</div>
+                <h2 className="bear-title">L'ours grogne !</h2>
+                <p className="bear-text">Le village se réveille sous les rugissements de l'ours du Montreur...</p>
+                <p className="bear-instruction">Annoncez aux villageois que l'ours a senti un danger !</p>
+                <button 
+                  className="header-btn primary-action" 
+                  style={{marginTop: 20, alignSelf:'center', padding: '12px 30px', fontSize: '1.2rem'}}
+                  onClick={() => setShowBearModal(false)}
+                >
+                  Compris
+                </button>
+              </div>
+            </div>
           )}
 
         </main>

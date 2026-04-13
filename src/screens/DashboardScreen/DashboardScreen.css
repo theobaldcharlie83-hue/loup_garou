@@ -922,3 +922,117 @@
   }
 }
 
+/* ── Modale Grognement de l'Ours ─────────────────────────── */
+.bear-growl-modal {
+  background: linear-gradient(165deg, #2d1b0d 0%, #1a0f00 100%) !important;
+  border: 2px solid #8B4513 !important;
+  box-shadow: 0 0 60px rgba(139, 69, 19, 0.4), 0 0 20px rgba(0,0,0,0.8) !important;
+  align-items: center;
+  padding: 40px !important;
+}
+
+.bear-icon-large {
+  font-size: 6rem;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(139, 69, 19, 0.8));
+  animation: bearRoar 1s infinite ease-in-out alternate;
+}
+
+@keyframes bearRoar {
+  0%   { transform: scale(1) rotate(-3deg); }
+  50%  { transform: scale(1.1) rotate(0deg); }
+  100% { transform: scale(1) rotate(3deg); }
+}
+
+.bear-title {
+  font-family: var(--font-headline);
+  font-size: 2.4rem !important;
+  color: #d2a679 !important;
+  margin: 0 0 16px 0 !important;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.bear-text {
+  font-size: 1.1rem !important;
+  color: #e0cca7 !important;
+  margin-bottom: 12px !important;
+  opacity: 0.9;
+}
+
+.bear-instruction {
+  font-size: 0.9rem !important;
+  color: #8B4513 !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(139, 69, 19, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 10px !important;
+}
+
+.bear-growl-overlay {
+  z-index: 5000;
+  backdrop-filter: blur(8px) brightness(0.4) !important;
+}
+
+/* ── Chien-Loup / Wolf-Dog Special Styles ────────────────── */
+.av-dogwolf-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  z-index: 8;
+  border: 2px solid;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.av-dogwolf-badge.camp-loup {
+  background: linear-gradient(135deg, #420a0a, #93000a);
+  border-color: #ffb4ab;
+  color: #ffb4ab;
+  box-shadow: 0 0 12px rgba(147, 0, 10, 0.6);
+}
+
+.av-dogwolf-badge.camp-village {
+  background: linear-gradient(135deg, #1a1000, #ffb86b);
+  border-color: #ffffff;
+  color: #1a1000;
+  box-shadow: 0 0 12px rgba(255, 184, 107, 0.6);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.choice-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.choice-btn:hover {
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4) !important;
+}
+
+.ai-btn {
+  background: linear-gradient(90deg, #bb56ff, #e8b4f9) !important;
+  color: #1a0f41 !important;
+  border: none !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 15px rgba(187, 86, 255, 0.4) !important;
+  animation: bgPulse 2s infinite alternate;
+}
+
+@keyframes bgPulse {
+  from { filter: brightness(1) saturate(1); }
+  to { filter: brightness(1.2) saturate(1.2); }
+}

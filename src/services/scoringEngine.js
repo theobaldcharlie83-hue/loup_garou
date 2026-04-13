@@ -46,6 +46,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
      matrix[targetId].breakdown.push({ points, reason });
   };
 
+
   aliveOthers.forEach(target => {
      const targetTeam = getTeam(target);
 
@@ -95,27 +96,50 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          }
      }
 
-     if (plushie.roleId === 'montreur-ours') {
-        const myIndex = allPlayers.findIndex(x => x.id === plushie.id);
-        if (myIndex !== -1) {
-            const left = allPlayers[(myIndex - 1 + allPlayers.length) % allPlayers.length];
-            const right = allPlayers[(myIndex + 1) % allPlayers.length];
-            
-            // On vérifie si l'un des voisins VIVANTS est un loup
-            const isLeftWolf = left.isAlive && getTeam(left) === 'loup';
-            const isRightWolf = right.isAlive && getTeam(right) === 'loup';
-            const hasGrowled = isLeftWolf || isRightWolf;
+     // 5. Montreur d'Ours (Voisins Historiques)
+     // BUG FIX: On utilise storeState.players pour trouver le montreur même s'il est mort (révélé)
+     const growlingMontreurs = storeState.players.filter(p => p.roleId === 'montreur-ours' && p.hasBearGrowled);
+     
+     growlingMontreurs.forEach(m => {
+         const isEvaluatorTheMontreur = plushie.id === m.id;
+         const suspicionIsPublic = !m.isAlive;
 
-            if (hasGrowled) {
-                // Si l'un des deux voisins est un loup, on suspecte les deux (s'ils sont vivants)
-                if (target.id === left.id || target.id === right.id) {
-                    addScore(target.id, -500, "L'Ours a grogné ce matin ! C'est un voisin physique ! (-500)");
-                }
-            } else {
-                // Si l'ours n'a pas grogné, les voisins vivants sont cleans
-                if ((target.id === left.id || target.id === right.id) && target.isAlive) {
-                    addScore(target.id, 1000, "Mon Ours n'a pas grogné, mes voisins physiques sont cleans (+1000)");
-                }
+         // Pour le village (public), on suspecte les marqués si le montreur est mort.
+         // Pour le montreur lui-même (privé), on suspecte s'il est vivant.
+         if ((isEvaluatorTheMontreur && m.isAlive) || (suspicionIsPublic && myTeam !== 'loup' && !isEvaluatorTheMontreur)) {
+             if (target.isBearSuspected) {
+                 const penalty = isEvaluatorTheMontreur ? -500 : -200;
+                 const reason = isEvaluatorTheMontreur 
+                     ? "Mon Ours a grogné ! Ce voisin est suspect historique (-500)"
+                     : `Le Montreur (${m.name}) est mort ! Ce joueur est un de ses suspects historiques (-200)`;
+                 addScore(target.id, penalty, reason);
+             }
+         }
+     });
+
+     // --- Déduction entre suspects ---
+     // BUG FIX: Cette déduction massive n'a lieu que si le montreur est MORT (révélé)
+     if (plushie.isBearSuspected && myTeam !== 'loup') {
+         // On cherche l'autre suspect
+         const otherSuspects = allPlayers.filter(p => p.isBearSuspected && p.id !== plushie.id && p.isAlive);
+         if (otherSuspects.some(s => s.id === target.id)) {
+             // On vérifie qu'un montreur historique est bien mort
+             const aMontreurIsDead = growlingMontreurs.some(m => !m.isAlive);
+             if (aMontreurIsDead) {
+                 addScore(target.id, -1000, "Le Montreur est mort et l'ours a grogné... je suis innocent, donc lui est forcément LOUP ! (-1000)");
+             }
+         }
+     }
+
+     // Bonus voisins physiques cleans (SEULEMENT si le montreur est vivant et qu'aucun grognement n'a eu lieu aujourd'hui)
+     if (plushie.roleId === 'montreur-ours' && !plushie.isGroaning && plushie.isAlive) {
+        const alivePlayers = allPlayers.filter(p => p.isAlive);
+        const myIndex = alivePlayers.findIndex(x => x.id === plushie.id);
+        if (myIndex !== -1) {
+            const left = alivePlayers[(myIndex - 1 + alivePlayers.length) % alivePlayers.length];
+            const right = alivePlayers[(myIndex + 1) % alivePlayers.length];
+            if ((target.id === left.id || target.id === right.id) && target.isAlive) {
+                addScore(target.id, 1000, "Mon Ours n'a pas grogné ce matin, mes voisins actuels sont cleans (+1000)");
             }
         }
      }
@@ -128,6 +152,18 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          if (!fluteCharmed.includes(target.id)) {
             addScore(target.id, -100, "Il n'est pas encore sous mon charme (-100)");
          }
+     }
+
+     if (plushie.roleId === 'renard') {
+         (storeState.foxHistory || []).forEach(entry => {
+             if (entry.groupIds.includes(target.id)) {
+                 if (entry.hasWolf) {
+                     addScore(target.id, -200, "Présence de loup détectée par mon flair (-200)");
+                 } else {
+                     addScore(target.id, 1000, "Innocenté par mon flair (+1000)");
+                 }
+             }
+         });
      }
 
      if (plushie.roleId === 'ange' && dayNumber === 1) {

@@ -15,7 +15,6 @@ export const ROLE_CATALOG = [
   { id: 'cupidon',       name: 'Cupidon',                     team: 'village',   maxQty: 1, icon: '💘' },
   { id: 'voyante',       name: 'Voyante',                     team: 'village',   maxQty: 1, icon: '🔮' },
   { id: 'soeurs',        name: 'Les Sœurs',                   team: 'village',   maxQty: 2, icon: '👯' },
-  { id: 'petite-fille',  name: 'Petite Fille',                team: 'village',   maxQty: 1, icon: '👧' },
   { id: 'renard',        name: 'Renard',                      team: 'village',   maxQty: 1, icon: '🦊' },
   { id: 'chevalier',     name: "Chevalier à l'Épée Rouillée", team: 'village',   maxQty: 1, icon: '⚔️' },
   { id: 'ancien',        name: 'Ancien',                      team: 'village',   maxQty: 1, icon: '🧙' },
@@ -55,6 +54,20 @@ function shuffle(arr) {
   }
   return a
 }
+
+/* ─── UTILITAIRES DE CAMP ────────────────────────────────────── */
+export const getPlayerTeam = (player, players, state) => {
+  if (!player) return 'village';
+  // Les Sœurs gardent le camp village même si infectées (règle officielle Best Of)
+  if (player.roleId === 'soeurs') return 'village';
+  if (player.isInfected) return 'loup';
+  if (player.roleId === 'chien-loup' && state.chienLoupSide) return state.chienLoupSide;
+  if (player.roleId === 'enfant-sauvage' && state.wildChildModelId) {
+    const model = players.find(x => x.id === state.wildChildModelId);
+    if (model && !model.isAlive) return 'loup';
+  }
+  return ROLE_BY_ID[player.roleId]?.team || 'village';
+};
 
 /* ─── ÉTAT INITIAL ─────────────────────────────────────────── */
 const initialState = {
@@ -118,6 +131,7 @@ const initialState = {
   chevalierDeadWolfRevealId: null,
   chevalierRevengeData: null, // { chevalierId, wolfId }
   corbeauTargetId: null,      // Cible désignée par le corbeau
+  foxPowerLost: false,        // Le renard a-t-il perdu son pouvoir ?
 }
 
 /* ─── STORE ─────────────────────────────────────────────────── */
@@ -180,6 +194,9 @@ export const useGameStore = create((set, get) => ({
     const s = get()
     const totalPlayers = s.humanCount + s.plushCount
     const totalRoles   = Object.values(s.roleSelection).reduce((sum, q) => sum + q, 0)
+    // Bloquer si les Sœurs sont à 1 (elles doivent être 0 ou 2)
+    const soeurQty = s.roleSelection['soeurs'] ?? 0
+    if (soeurQty === 1) return false
     return totalPlayers > 0 && totalRoles === totalPlayers
   },
 
@@ -205,6 +222,7 @@ export const useGameStore = create((set, get) => ({
         isInfected: false,
         isCaptain: false,
         couplePartnerId: null,
+        isBearSuspected: false,
       })
     })
 
@@ -218,6 +236,7 @@ export const useGameStore = create((set, get) => ({
         isInfected: false,
         isCaptain: false,
         couplePartnerId: null,
+        isBearSuspected: false,
       })
     })
 
@@ -256,6 +275,8 @@ export const useGameStore = create((set, get) => ({
       chevalierDeadWolfRevealId: null,
       chevalierRevengeData: null,
       corbeauTargetId: null,
+      foxPowerLost: false,
+      foxHistory: [],
     })
   },
   
@@ -325,15 +346,9 @@ export const useGameStore = create((set, get) => ({
     }
 
     // Calcul des camps actuels
-    const getTeam = (p) => {
-       if (p.isInfected) return 'loup';
-       if (p.roleId === 'chien-loup' && s.chienLoupSide) return s.chienLoupSide;
-       if (p.roleId === 'enfant-sauvage' && s.wildChildModelId) {
-          const model = s.players.find(x => x.id === s.wildChildModelId);
-          if (model && !model.isAlive) return 'loup';
-       }
-       return ROLE_BY_ID[p.roleId]?.team || 'village';
-    };
+    const getTeam = (p) => getPlayerTeam(p, s.players, s);
+
+    const isWolf = (p) => getTeam(p) === 'loup';
 
     const aliveWolves = alive.filter(p => getTeam(p) === 'loup');
     const aliveVillagers = alive.filter(p => getTeam(p) === 'village');
@@ -459,6 +474,25 @@ export const useGameStore = create((set, get) => ({
        }
     }
 
+    // --- GESTION DES DEUX SŒURS (LIEN DE SANG) ---
+    // Quand l'une meurt, l'autre meurt aussi — sauf si c'est déjà la mort de la deuxième
+    if (player.roleId === 'soeurs') {
+       const sister = s.players.find(p => p.roleId === 'soeurs' && p.id !== playerId && p.isAlive);
+       if (sister) {
+          // On vérifie que la sœur n'est pas déjà marquée morte dans newPlayers (évite double-traitement)
+          const alreadyDead = newPlayers.find(p => p.id === sister.id && !p.isAlive);
+          if (!alreadyDead) {
+             newPlayers = newPlayers.map(p => p.id === sister.id ? { ...p, isAlive: false, deathCause: 'sister-bond' } : p);
+             newJournal.push({
+               id: Date.now() + 3,
+               timestamp: new Date(),
+               text: `👯 ${sister.name} ne peut survivre sans sa sœur ${player.name}... Elle s'effondre à son tour.`,
+               type: 'death'
+             });
+          }
+       }
+    }
+
     // --- SUCCESSION DU CAPITAINE ---
     let successionId = s.successionPendingForId;
     if (player.isCaptain) {
@@ -470,11 +504,20 @@ export const useGameStore = create((set, get) => ({
       });
     }
 
+    // --- MORT DU JOUEUR DE FLÛTE ---
+    // Vide les charmés et retire ses étapes de nuit
+    const isPiper = player.roleId === 'joueur-flute';
+    const piperPatch = isPiper ? {
+      charmedIds: [],
+      activeNightSteps: s.activeNightSteps.filter(st => st.id !== 'joueur-flute' && st.id !== 'joueurs-charmes'),
+    } : {};
+
     set({ 
       players: newPlayers, 
       journal: newJournal,
       condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId,
-      successionPendingForId: successionId
+      successionPendingForId: successionId,
+      ...piperPatch
     });
 
     // --- LOGIQUE CHEVALIER (Vengeance épée rouillée) ---
@@ -482,10 +525,7 @@ export const useGameStore = create((set, get) => ({
       const allPlayers = s.players;
       const index = allPlayers.findIndex(p => p.id === playerId);
       
-      const isWolf = (p) => {
-        const r = ROLE_BY_ID[p.roleId];
-        return (r?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc'; // Loup Blanc n'est pas "dans la meute" pour cette règle ? En général non, mais Best Of a parfois des nuances. Ici on suit la meute.
-      };
+      const isWolf = (p) => getPlayerTeam(p, allPlayers, s) === 'loup';
 
       // Chercher le premier loup vivant à droite (SENS HORAIRE / RIGHT)
       let contaminatedId = null;
@@ -580,6 +620,14 @@ export const useGameStore = create((set, get) => ({
     nightActions: { ...s.nightActions, corbeauTargetId: playerId }
   })),
 
+  commitFoxAction: (centralId, hasWolf, groupIds) => set((s) => {
+    return {
+      foxPowerLost: !hasWolf,
+      foxHistory: [...s.foxHistory, { centralId, hasWolf, groupIds }],
+      nightActions: { ...s.nightActions, foxCentralId: centralId, foxHasWolf: hasWolf }
+    }
+  }),
+
   wakeUpVillage: () => {
     const s = get()
     const nightA = s.nightActions
@@ -624,7 +672,8 @@ export const useGameStore = create((set, get) => ({
     const updatedState = get();
 
     // 5. Montreur d'Ours
-    const montreur = updatedState.players.find(p => p.roleId === 'montreur-ours' && p.isAlive);
+    // On vérifie s'il est en vie ET qu'il ne vient pas d'être tué durant cette nuit précise (toKill)
+    const montreur = updatedState.players.find(p => p.roleId === 'montreur-ours' && p.isAlive && !toKill.some(k => k.id === p.id));
     if (montreur) {
       const alivePlayers = updatedState.players.filter(p => p.isAlive);
       const idx = alivePlayers.findIndex(p => p.id === montreur.id);
@@ -633,16 +682,20 @@ export const useGameStore = create((set, get) => ({
 
       const isWolf = (p) => {
         if (!p) return false;
-        const r = ROLE_BY_ID[p.roleId];
-        return r?.team === 'loup' || r?.team === 'solitaire' || p.isInfected;
+        // Détecte les loups via leur camp dynamique (infectés, sauvages mutés, chien-loup)
+        // On inclut aussi les solitaires comme le Loup Blanc qui font grogner l'ours.
+        return getPlayerTeam(p, updatedState.players, updatedState) === 'loup' || ROLE_BY_ID[p.roleId]?.team === 'solitaire';
       };
 
-      if (isWolf(left)) {
-        updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne vers la gauche (${left.name})...`, type: 'event' });
-        updatedState.players = updatedState.players.map(p => p.id === montreur.id ? { ...p, isGroaning: true } : p);
-      } else if (isWolf(right)) {
-        updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne vers la droite (${right.name})...`, type: 'event' });
-        updatedState.players = updatedState.players.map(p => p.id === montreur.id ? { ...p, isGroaning: true } : p);
+      if (isWolf(left) || isWolf(right)) {
+        updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne !`, type: 'event' });
+        
+        // On marque le montreur comme grognant ET on marque les voisins historiques comme suspects
+        updatedState.players = updatedState.players.map(p => {
+          if (p.id === montreur.id) return { ...p, isGroaning: true, hasBearGrowled: true };
+          if (p.id === left.id || p.id === right.id) return { ...p, isBearSuspected: true };
+          return p;
+        });
       }
     }
 
@@ -735,6 +788,7 @@ export const useGameStore = create((set, get) => ({
 
         return {
           phase,
+          players: s.players.map(p => ({ ...p, isGroaning: false })), // Toujours reset le grognement la nuit
           dayNumber: nextDay,
           nightActions: {},
           corbeauTargetId: null,

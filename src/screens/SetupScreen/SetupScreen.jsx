@@ -74,7 +74,8 @@ export default function SetupScreen() {
       if ((selection['villageois'] || 0) < 7) {
         addRole('villageois', 7)
       } else {
-        const specials = ROLE_CATALOG.filter(r => r.team === 'village' && r.id !== 'villageois' && (selection[r.id] || 0) < r.maxQty)
+        // Les Sœurs sont exclues de l'auto-assign (elles ne s'ajoutent que par 2)
+        const specials = ROLE_CATALOG.filter(r => r.team === 'village' && r.id !== 'villageois' && r.id !== 'soeurs' && (selection[r.id] || 0) < r.maxQty)
         if (specials.length > 0) {
           addRole(specials[Math.floor(Math.random() * specials.length)].id, 1)
         } else {
@@ -321,13 +322,22 @@ export default function SetupScreen() {
             <div className="roles-grid">
               {rolesByTeam[team].map((role) => {
                 const qty = roleSelection[role.id] ?? 0
+                // Les Sœurs ne peuvent être que 0 ou 2 (jamais 1)
+                const isSoeurs = role.id === 'soeurs'
+                const handleDecrement = isSoeurs
+                  ? () => setRoleQty(role.id, 0)
+                  : () => setRoleQty(role.id, Math.max(0, qty - 1))
+                const handleIncrement = isSoeurs
+                  ? () => setRoleQty(role.id, qty === 0 ? 2 : qty)
+                  : () => setRoleQty(role.id, Math.min(role.maxQty, qty + 1))
                 return (
                   <RoleCard
                     key={role.id}
                     role={role}
                     qty={qty}
-                    onDecrement={() => setRoleQty(role.id, Math.max(0, qty - 1))}
-                    onIncrement={() => setRoleQty(role.id, Math.min(role.maxQty, qty + 1))}
+                    onDecrement={handleDecrement}
+                    onIncrement={handleIncrement}
+                    hint={isSoeurs ? 'Rôle duo uniquement (0 ou 2)' : null}
                   />
                 )
               })}
@@ -340,7 +350,7 @@ export default function SetupScreen() {
 }
 
 /* ─── Sous-composant : Carte Rôle ───────────────────────────── */
-function RoleCard({ role, qty, onDecrement, onIncrement }) {
+function RoleCard({ role, qty, onDecrement, onIncrement, hint }) {
   const isSelected = qty > 0
 
   return (
@@ -380,6 +390,12 @@ function RoleCard({ role, qty, onDecrement, onIncrement }) {
           aria-label={`Ajouter ${role.name}`}
         >+</button>
       </div>
+
+      {hint && (
+        <div className="role-card__hint" style={{ fontSize: '0.65rem', color: '#a78bfa', marginTop: 4, textAlign: 'center', fontStyle: 'italic' }}>
+          {hint}
+        </div>
+      )}
     </article>
   )
 }
