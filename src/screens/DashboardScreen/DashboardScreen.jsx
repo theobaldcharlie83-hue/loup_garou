@@ -18,7 +18,7 @@ const TEAM_CLASS = {
 const PHASE_META = {
   night:         { label: 'Phase de Nuit',    icon: '🌙' },
   day:           { label: 'Phase de Jour',     icon: '☀️' },
-  interrogation: { label: 'Interrogatoire',    icon: '🧸' },
+
 }
 
 /* Ordre officiel de nuit — Best Of (règles officielles complètes) */
@@ -48,7 +48,7 @@ export default function DashboardScreen() {
   const {
     players, phase, dayNumber, journal,
     witchPotions, eliminatePlayer, setPhase,
-    startInterrogation,
+
     lovers, commitLovers,
     nightActions, setNightAction,
     commitWolvesVictim, commitSeerObservation, commitWitchLife, commitWitchDeath,
@@ -56,7 +56,7 @@ export default function DashboardScreen() {
     wakeUpVillage,
     infectUsed, commitInfection,
     seenBySeer, ancienLives, wildChildModelId,
-    hasInterrogatedToday, setInterrogatedToday,
+
     dayVotes, setDayVotes,
     nightStepIndex, setNightStepIndex,
     activeNightSteps, setActiveNightSteps,
@@ -80,7 +80,7 @@ export default function DashboardScreen() {
   const [highlightedIds, setHighlightedIds]       = useState([])      // IDs momentanément mis en lumière
   const [isProcessingAction, setIsProcessingAction] = useState(false) // Debounce global pour les animations
   const [captainModal, setCaptainModal]           = useState(false)   // Modale "désignez un capitaine"
-  const [interrogationModal, setInterrogationModal] = useState(null)  // Modale de confirmation interrogatoire
+
   const [showBearModal, setShowBearModal] = useState(false)        // Modale d'alerte pour le grognement de l'ours
   const [hasShownBearGrowl, setHasShownBearGrowl] = useState(false) // Pour ne l'afficher qu'une fois par jour
   const [showRules, setShowRules] = useState(false)               // Contrôle de la modale des règles
@@ -315,7 +315,7 @@ export default function DashboardScreen() {
       setChasseurPendingId(pid)
     }
   }
-  const handleInterrogate = (player) => { startInterrogation(player.id); navigate('/interrogation') }
+
   const handleReset = () => { useGameStore.getState().resetGame(); navigate('/') }
 
   /* ── Highlight aléatoire ─────────────────────────────── */
@@ -534,7 +534,7 @@ export default function DashboardScreen() {
         <div className="header-spacer" />
 
         <div className="header-actions">
-          {phase !== 'interrogation' && phase !== 'preparation' && (
+          {phase !== 'preparation' && (
             <>
               {phase === 'day' && (
                 <button
@@ -656,8 +656,6 @@ export default function DashboardScreen() {
             const left  = dims.cx + dims.rx * Math.cos(angle)
             const top   = dims.cy + dims.ry * Math.sin(angle)
             const role  = ROLE_BY_ID[player.roleId]
-            const model = players.find(p => p.id === wildChildModelId);
-            const isWildChildMutated = player.roleId === 'enfant-sauvage' && model && !model.isAlive;
             const isNightTarget = nightSelection.includes(player.id)
             const isWolvesTarget = nightActions.wolvesVictim === player.id
             const isLover = lovers.includes(player.id)
@@ -690,7 +688,7 @@ export default function DashboardScreen() {
                   {(() => {
                     const model = players.find(p => p.id === wildChildModelId);
                     const isWildChildMutated = player.roleId === 'enfant-sauvage' && model && !model.isAlive;
-                    const isDogWolfLoup = player.roleId === 'chien-loup' && chienLoupSide === 'loup';
+       
                     
                     if (isInfected) return <div className="av-infected-badge" title="Infection réussie" aria-hidden="true">☣️</div>;
                     if (isWildChildMutated) return <div className="av-wildchild-badge mutated" title="Enfant Sauvage Muté" aria-hidden="true">🐺</div>;
@@ -1142,7 +1140,7 @@ export default function DashboardScreen() {
           {phase === 'day' && !isVoting && !tribunalLocked && !successionPendingForId && (
             <div className="night-step-card end-night">
               <h3>Phase de Jour ☀️ </h3>
-              <p>Écoutez les plaidoyers, interrogez UNE SEULE peluche pour récolter des indices, puis préparez-vous au Tribunal.</p>
+              <p>Écoutez les plaidoyers puis préparez-vous au Tribunal.</p>
               <button className="header-btn" style={{marginTop: 15, alignSelf: 'center'}} onClick={() => setIsVoting(true)}>
                 ⚖️  Ouvrir le Tribunal du Village
               </button>
@@ -1222,7 +1220,7 @@ export default function DashboardScreen() {
                            tally[targetId] = (tally[targetId] || 0) + 2;
                         }
 
-                        Object.entries(dayVotes).forEach(([voterId, targetId]) => {
+                        Object.entries(dayVotes).forEach(([, targetId]) => {
                            if (targetId) {
                               const weight = 1; // Tous les votes valent 1 au départ
                               tally[targetId] = (tally[targetId] || 0) + weight;
@@ -1383,21 +1381,7 @@ export default function DashboardScreen() {
                    </>
                 ) : phase === 'day' ? (
                   <>
-                    {selectedPlayer.isPlush && (
-                      <button
-                        id="btn-interrogate"
-                        className="pap-btn interrogate"
-                        disabled={hasInterrogatedToday}
-                        onClick={() => {
-                          if (!hasInterrogatedToday) {
-                            setInterrogationModal(selectedPlayer)
-                            setSelectedId(null)
-                          }
-                        }}
-                      >
-                        🎭 Interroger {hasInterrogatedToday && '(Utilisé)'}
-                      </button>
-                    )}
+
                     <button
                       id="btn-eliminate"
                       className="pap-btn eliminate"
@@ -1696,31 +1680,7 @@ export default function DashboardScreen() {
         </div>
       )}
 
-      {/* ── MODALE : CONFIRMATION INTERROGATOIRE ──────────── */}
-      {interrogationModal && (
-        <div className="grimoire-modal-overlay" onClick={() => setInterrogationModal(null)}>
-          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
-            <div className="grimoire-modal-icon">🎭</div>
-            <h2>Interroger {interrogationModal.name} ?</h2>
-            <p>
-              Vous ne disposez que d'<strong>un seul interrogatoire</strong> par jour.<br/>
-              Une fois commencé, vous ne pourrez plus en mener d'autre aujourd'hui.
-            </p>
-            <div className="grimoire-modal-actions">
-              <button className="grimoire-modal-btn cancel" onClick={() => setInterrogationModal(null)}>
-                Annuler
-              </button>
-              <button className="grimoire-modal-btn confirm" onClick={() => {
-                setInterrogatedToday(true)
-                handleInterrogate(interrogationModal)
-                setInterrogationModal(null)
-              }}>
-                🎭 Oui, interroger !
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

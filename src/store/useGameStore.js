@@ -98,8 +98,7 @@ const initialState = {
   journal: [],
   // entry shape: { id, timestamp, text, type }
 
-  // ── Interrogatoire
-  activeInterrogationPlayerId: null,
+
 
   // ── Pouvoirs persistants
   witchPotions: { life: true, death: true },
@@ -124,9 +123,7 @@ const initialState = {
   captainId: null,
   successionPendingForId: null, // ID du capitaine mort en attente de successeur
   
-  // Étape 3 : Interrogatoire Pro
-  trustGauge: 50,
-  unlockedClues: [],
+
 
   // ── Tribunal
   isVoting: false,
@@ -188,11 +185,7 @@ export const useGameStore = create((set, get) => ({
       roleSelection: { ...s.roleSelection, [roleId]: qty },
     })),
 
-  /* ── Interrogatoire ───────────────────────────────────────── */
-  setTrustGauge: (val) => set({ trustGauge: Math.max(-1000, Math.min(100, val)) }),
-  addUnlockedClue: (clue) => set(state => ({
-    unlockedClues: state.unlockedClues.includes(clue) ? state.unlockedClues : [...state.unlockedClues, clue]
-  })),
+
 
   getTotalRoles: () =>
     Object.values(get().roleSelection).reduce((sum, q) => sum + q, 0),
@@ -274,7 +267,7 @@ export const useGameStore = create((set, get) => ({
       chienLoupSide: null,
       captainId: null,
       successionPendingForId: null,
-      hasInterrogatedToday: false,
+
       dayVotes: {},
       isVoting: false,
       tribunalLocked: false,
@@ -293,7 +286,7 @@ export const useGameStore = create((set, get) => ({
   setActiveNightSteps: (steps) => set({ activeNightSteps: steps }),
 
   setDayVotes: (votes) => set({ dayVotes: votes }),
-  setInterrogatedToday: (val) => set({ hasInterrogatedToday: val }),
+
   setQAScoringData: (data) => set({ qaScoringData: data }),
   setNightStepIndex: (valOrFn) => set((s) => ({ 
     nightStepIndex: typeof valOrFn === 'function' ? valOrFn(s.nightStepIndex) : valOrFn 
@@ -700,13 +693,12 @@ export const useGameStore = create((set, get) => ({
     set({
       phase: 'day',
       nightActions: {},
-      hasInterrogatedToday: false,
+
       dayVotes: {},
       isVoting: false,
       tribunalLocked: false,
       condemnedPlayerId: null,
-      trustGauge: 50,
-      unlockedClues: [],
+
       journal: [
         ...updatedState.journal,
         { id: Date.now(), text: `Jour ${updatedState.dayNumber} : Le village se réveille.`, type: 'phase' },
@@ -798,12 +790,7 @@ export const useGameStore = create((set, get) => ({
       return { phase }
     }),
 
-  /* ── Interrogatoire ───────────────────────────────────────── */
-  startInterrogation: (playerId) =>
-    set({ activeInterrogationPlayerId: playerId, phase: 'interrogation' }),
 
-  endInterrogation: () =>
-    set({ activeInterrogationPlayerId: null, phase: 'day' }),
 
   /* ── Journal ────────────────────────────────────────────────── */
   addJournalEntry: (text, type = 'event') =>
