@@ -23,6 +23,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
 
   const getTeam = (p) => {
      if (p.isInfected) return 'loup';
+     if (p.roleId === 'loup-blanc') return 'loup';
      if (p.roleId === 'chien-loup' && chienLoupSide) return chienLoupSide;
      if (p.roleId === 'enfant-sauvage' && wildChildModel) {
         const model = allPlayers.find(x => x.id === wildChildModel);
@@ -166,14 +167,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          });
      }
 
-     if (plushie.roleId === 'ange' && dayNumber === 1) {
-        // Envie de mourir, cible un peu au pif pour forcer l'attention
-        if (targetTeam !== 'loup') { // ne risque pas d'attaquer les loups qui pourraient l'aider
-             Math.random() > 0.5 && addScore(target.id, -100, "Discours absurde pour m'attirer les foudres (Jour 1)");
-        }
-     }
-
-     // --- DEDUCTION LOGIQUE : CHEVALIER À L'ÉPÉE ROUILLÉE ---
+      // --- DEDUCTION LOGIQUE : CHEVALIER À L'ÉPÉE ROUILLÉE ---
      if (storeState.chevalierRevengeData) {
        const { chevalierId, wolfId } = storeState.chevalierRevengeData;
        

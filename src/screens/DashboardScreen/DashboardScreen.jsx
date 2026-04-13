@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGameStore, ROLE_BY_ID } from '../../store/useGameStore'
+import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
 import { generatePlushiesVotes } from '../../services/geminiService'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
+import RulesModal from '../../components/RulesModal/RulesModal'
 import './DashboardScreen.css'
 
 /* Classe CSS par équipe */
@@ -82,6 +83,7 @@ export default function DashboardScreen() {
   const [interrogationModal, setInterrogationModal] = useState(null)  // Modale de confirmation interrogatoire
   const [showBearModal, setShowBearModal] = useState(false)        // Modale d'alerte pour le grognement de l'ours
   const [hasShownBearGrowl, setHasShownBearGrowl] = useState(false) // Pour ne l'afficher qu'une fois par jour
+  const [showRules, setShowRules] = useState(false)               // Contrôle de la modale des règles
   
   // Modal QA
   const [qaModalPlushId, setQaModalPlushId] = useState(null)
@@ -182,14 +184,11 @@ export default function DashboardScreen() {
       const activeRoles  = new Set(players.filter(p => p.isAlive).map(p => p.roleId))
       const hasCupidon   = activeRoles.has('cupidon')
       const hasWolves    = players.some(p =>
-        p.isAlive &&
-        (['loup', 'solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected) &&
-        p.roleId !== 'joueur-flute' &&
-        p.roleId !== 'ange'
+        p.isAlive && isPlayerWolf(p, players, useGameStore.getState()) && p.roleId !== 'joueur-flute'
       )
       const loupsBlancs  = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
-      const otherWolves  = players.filter(p => p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc')
-      const deadWolves   = players.filter(p => !p.isAlive && (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected))
+      const otherWolves  = players.filter(p => p.isAlive && isPlayerWolf(p, players, useGameStore.getState()) && p.roleId !== 'loup-blanc')
+      const deadWolves   = players.filter(p => !p.isAlive && isPlayerWolf(p, players, useGameStore.getState()))
 
       const steps = NIGHT_ORDER.filter(step => {
         // Étapes Nuit 1 uniquement : bloquer les nuits suivantes
@@ -219,8 +218,8 @@ export default function DashboardScreen() {
         // Grand-Méchant-Loup : tant qu'aucun Loup-Garou n'est mort
         if (step.id === 'grand-mechant') return activeRoles.has('grand-mechant') && deadWolves.length === 0
 
-        // Loup Blanc : une nuit sur deux, seulement s'il y a d'autres loups
-        if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && otherWolves.length > 0 && dayNumber % 2 === 0
+        // Loup Blanc : une nuit sur deux
+        if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && dayNumber % 2 === 0
 
         // Joueurs charmés : seulement si le joueur de flûte est vivant et a déjà charmé
         if (step.id === 'joueurs-charmes') return charmedIds.length > 0 && players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
@@ -237,13 +236,9 @@ export default function DashboardScreen() {
 
       setActiveNightSteps(steps)
       setNightStepIndex(0)
-      if (nightStepIndex !== -1) {
-        setNightStepIndex(-1)
-        setActiveNightSteps([])
-      }
       setNightSelection([])
     }
-  }, [phase, dayNumber]) // eslint-disable-line react-hooks/exhaustive-deps — dépendances volontairement minimales pour éviter les resets mid-nuit
+  }, [phase, dayNumber, players, nightStepIndex]) // Correct dependency array to avoid stale state issues
 
   // Reset séparé pour le verrou du bouton IA de la sorcière
   useEffect(() => {
@@ -274,7 +269,7 @@ export default function DashboardScreen() {
   }
 
   const alive           = players.filter(p => p.isAlive)
-  const wolves          = alive.filter(p => ['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) || p.isInfected)
+  const wolves          = alive.filter(p => isPlayerWolf(p, players, useGameStore.getState()))
   const witchInGame     = players.some(p => p.roleId === 'sorciere')
 
   /* Handlers */
@@ -389,10 +384,7 @@ export default function DashboardScreen() {
         const right = alivePlayers[(cIdx + 1) % alivePlayers.length];
         const groupIds = [left.id, selectedPlayer.id, right.id];
         
-        const isWolf = (p) => {
-          const r = ROLE_BY_ID[p.roleId];
-          return r?.team === 'loup' || r?.team === 'solitaire' || p.isInfected;
-        };
+        const isWolf = (p) => isPlayerWolf(p, players, useGameStore.getState());
         const hasWolf = groupIds.some(id => isWolf(players.find(p => p.id === id)));
         
         commitFoxAction(selectedPlayer.id, hasWolf, groupIds);
@@ -528,6 +520,7 @@ export default function DashboardScreen() {
 
   return (
     <div className={`dashboard-screen phase-${phase}`} aria-label="Tableau de bord">
+      <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
 
       {/* ═ ═  HEADER ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═  */}
       <header className="dashboard-header">
@@ -625,6 +618,19 @@ export default function DashboardScreen() {
               )
             })}
           </div>
+
+          <div className="sidebar-spacer" style={{ flex: 1 }} />
+
+          {/* Bouton Règles */}
+          <div className="sidebar-footer-action">
+            <button
+              className="rules-trigger-btn"
+              onClick={() => setShowRules(true)}
+            >
+              <span className="btn-icon">📜</span>
+              <span className="btn-text">Règles du Jeu</span>
+            </button>
+          </div>
         </aside>
 
         {/* ── Centre : Cercle des Joueurs ───────────────────── */}
@@ -659,9 +665,7 @@ export default function DashboardScreen() {
             const isWildChildModel = player.id === wildChildModelId
             const isRandomHighlighted = highlightedIds.includes(player.id)
 
-            const currentTeam = isInfected ? 'loup' 
-                              : (player.roleId === 'chien-loup' && chienLoupSide ? chienLoupSide 
-                              : (isWildChildMutated ? 'loup' : (role?.team ?? 'village')));
+            const currentTeam = getPlayerTeam(player, players, useGameStore.getState())
             const tc    = TEAM_CLASS[currentTeam] ?? 'av-village'
             const isSel = selectedId === player.id
 
@@ -712,6 +716,7 @@ export default function DashboardScreen() {
                   {nightActions.grandMechantVictim === player.id && <div className="av-temp-badge grand-mechant-victim" aria-hidden="true" title="Victime du Grand-Méchant-Loup">💀</div>}
                   {nightActions.witchHealed && nightActions.wolvesVictim === player.id && <div className="av-temp-badge" style={{top: -65}} aria-hidden="true">💖</div>}
                   {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
+                  {(player.deathCause === 'white-wolf' || nightActions.whiteWolfVictim === player.id) && <div className="av-temp-badge white-wolf-kill" title="Dévoré par le Loup Blanc" aria-hidden="true">🤍💀</div>}
                   {player.id === chevalierContaminatedWolfId && <div className="av-contaminated-badge" title="Contaminé par la rouille" aria-hidden="true">⚔️</div>}
                   {player.id === useGameStore.getState().corbeauTargetId && <div className="av-corbeau-badge" title="Cible du Corbeau (2 voix)" aria-hidden="true">🐦</div>}
 
@@ -735,14 +740,6 @@ export default function DashboardScreen() {
           {phase === 'preparation' && (
             <div className="night-step-card end-night">
               <h3>Répartition et Vérification</h3>
-              {players.some(p => p.roleId === 'ange') && (
-                <div style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid #ffd700', borderRadius: 8, padding: '10px 14px', marginBottom: 16, textAlign: 'left' }}>
-                  <p style={{ color: '#ffd700', margin: 0, fontSize: '0.9rem' }}>
-                    ⚠️ <strong>Règle Ange</strong> : L'Ange est en jeu !<br/>
-                    La partie doit commencer par un <strong>débat du village</strong> suivi d'un <strong>vote éliminatoire</strong> avant la première nuit.
-                  </p>
-                </div>
-              )}
               <p style={{marginBottom: 20}}>Cliquez sur un humain pour intervertir secrètement son rôle. Quand tout est prêt, lancez la partie !</p>
               <button className="header-btn primary-action" style={{ alignSelf: 'center', fontSize: '1.2rem', padding: '12px 24px' }} onClick={handlePhaseToggle}>
                 <span aria-hidden="true">☀️ </span> Lancer la Partie (Nuit 1)
@@ -806,10 +803,7 @@ export default function DashboardScreen() {
                             const left = alivePlayers[(cIdx - 1 + alivePlayers.length) % alivePlayers.length];
                             const right = alivePlayers[(cIdx + 1) % alivePlayers.length];
                             const groupIds = [left.id, rnd.id, right.id];
-                            const isWolf = (p) => {
-                              const r = ROLE_BY_ID[p.roleId];
-                              return r?.team === 'loup' || r?.team === 'solitaire' || p.isInfected;
-                            };
+                            const isWolf = (p) => isPlayerWolf(p, players, useGameStore.getState());
                             const hasWolf = groupIds.some(id => isWolf(players.find(p => p.id === id)));
                             commitFoxAction(rnd.id, hasWolf, groupIds);
                             setNightSelection(groupIds);
@@ -856,7 +850,7 @@ export default function DashboardScreen() {
                   {/* ── Loups IA ── */}
                   {currentStepInfo.id === 'loup-simple' && wolves.every(w => w.isPlush) && !nightActions.wolvesVictim && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected);
+                        const valids = alive.filter(p => !isPlayerWolf(p, players, useGameStore.getState()));
                         if(valids.length > 0) {
                           let target = valids[Math.floor(Math.random() * valids.length)];
                           
@@ -881,7 +875,7 @@ export default function DashboardScreen() {
                   {/* ── Grand-Méchant-Loup IA ── */}
                   {currentStepInfo.id === 'grand-mechant' && players.find(p => p.roleId === 'grand-mechant' && p.isAlive)?.isPlush && !nightActions.grandMechantVictim && (
                     <button className="header-btn" style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && !p.isInfected && p.id !== nightActions.wolvesVictim);
+                        const valids = alive.filter(p => !isPlayerWolf(p, players, useGameStore.getState()) && p.id !== nightActions.wolvesVictim);
                         if(valids.length > 0) {
                           let target = valids[Math.floor(Math.random() * valids.length)];
 
@@ -906,12 +900,12 @@ export default function DashboardScreen() {
                   {/* ── Infect Père IA ── */}
                   {currentStepInfo.id === 'infect-pere' && players.find(p => p.roleId === 'infect-pere' && p.isAlive)?.isPlush && !infectUsed && (
                     <button className="header-btn" disabled={isProcessingAction} style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const valids = alive.filter(p => 
-                          !['loup','solitaire'].includes(ROLE_BY_ID[p.roleId]?.team) && 
-                          !p.isInfected && 
+                        const valids = alive.filter(p => {
+                          const isWolf = isPlayerWolf(p, players, useGameStore.getState());
+                          return !isWolf && 
                           p.id !== nightActions.wolvesVictim &&
-                          p.id !== nightActions.grandMechantVictim
-                        );
+                          p.id !== nightActions.grandMechantVictim;
+                        });
                         
                         if (valids.length > 0) {
                           let target = valids[Math.floor(Math.random() * valids.length)];
@@ -941,7 +935,7 @@ export default function DashboardScreen() {
                   {/* ── Loup Blanc IA ── */}
                   {currentStepInfo.id === 'loup-blanc' && players.find(p => p.roleId === 'loup-blanc' && p.isAlive)?.isPlush && !nightActions.whiteWolfVictim && (
                     <button className="header-btn" disabled={isProcessingAction} style={{marginBottom: 10, alignSelf:'center'}} onClick={() => {
-                        const otherWolves = alive.filter(p => (ROLE_BY_ID[p.roleId]?.team === 'loup' || p.isInfected) && p.roleId !== 'loup-blanc');
+                        const otherWolves = alive.filter(p => isPlayerWolf(p, players, useGameStore.getState()) && p.id !== players.find(x => x.roleId === 'loup-blanc')?.id);
                         if(otherWolves.length > 0) {
                           const rnd = otherWolves[Math.floor(Math.random() * otherWolves.length)];
                           commitWhiteWolfVictim(rnd.id);
@@ -1425,7 +1419,7 @@ export default function DashboardScreen() {
                          👁️ Joueur vu par la Voyante
                        </button>
                     )}
-                    {currentNightStepId === 'loup-simple' && selectedPlayer.isAlive && !['loup','solitaire','loup-infecte'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && (
+                    {currentNightStepId === 'loup-simple' && selectedPlayer.isAlive && !isPlayerWolf(selectedPlayer, players, useGameStore.getState()) && (
                        <button className="pap-btn eliminate" onClick={() => handleNightActionSelect()}>
                          🐺 Dévorer ce joueur
                        </button>
@@ -1464,12 +1458,12 @@ export default function DashboardScreen() {
                          🎶 Charmer ce joueur
                        </button>
                     )}
-                    {currentNightStepId === 'grand-mechant' && selectedPlayer.isAlive && !['loup','solitaire'].includes(ROLE_BY_ID[selectedPlayer.roleId]?.team) && !selectedPlayer.isInfected && selectedPlayer.id !== nightActions.wolvesVictim && !nightActions.grandMechantVictim && (
+                    {currentNightStepId === 'grand-mechant' && selectedPlayer.isAlive && !isPlayerWolf(selectedPlayer, players, useGameStore.getState()) && selectedPlayer.id !== nightActions.wolvesVictim && !nightActions.grandMechantVictim && (
                        <button className="pap-btn eliminate" onClick={() => handleNightActionSelect()}>
                          😈 2ème victime (GMM)
                        </button>
                     )}
-                    {currentNightStepId === 'loup-blanc' && selectedPlayer.isAlive && ROLE_BY_ID[selectedPlayer.roleId]?.team === 'loup' && selectedPlayer.roleId !== 'loup-blanc' && !nightActions.whiteWolfVictim && (
+                    {currentNightStepId === 'loup-blanc' && selectedPlayer.isAlive && isPlayerWolf(selectedPlayer, players, useGameStore.getState()) && selectedPlayer.roleId !== 'loup-blanc' && !nightActions.whiteWolfVictim && (
                        <button className="pap-btn eliminate" onClick={() => handleNightActionSelect()}>
                          🤝 Mordre un autre Loup
                        </button>

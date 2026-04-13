@@ -27,7 +27,6 @@ export const ROLE_CATALOG = [
   // ── Solitaires
   { id: 'loup-blanc',    name: 'Loup-Garou Blanc',            team: 'solitaire', maxQty: 1, icon: '🤍' },
   { id: 'joueur-flute',  name: 'Joueur de Flûte',             team: 'solitaire', maxQty: 1, icon: '🎶' },
-  { id: 'ange',          name: 'Ange',                        team: 'solitaire', maxQty: 1, icon: '😇' },
   { id: 'corbeau',       name: 'Corbeau',                     team: 'village',   maxQty: 1, icon: '🐦' },
 ]
 
@@ -67,6 +66,15 @@ export const getPlayerTeam = (player, players, state) => {
     if (model && !model.isAlive) return 'loup';
   }
   return ROLE_BY_ID[player.roleId]?.team || 'village';
+};
+
+/**
+ * Détecte si un joueur appartient à la meute des Loups (dynamique)
+ * Inclut : Loups de base, Infectés, Chien-Loup rallié, Enfant Sauvage muté, Loup Blanc (pourtant solitaire)
+ */
+export const isPlayerWolf = (player, players, state) => {
+  if (!player) return false;
+  return getPlayerTeam(player, players, state) === 'loup' || player.roleId === 'loup-blanc';
 };
 
 /* ─── ÉTAT INITIAL ─────────────────────────────────────────── */
@@ -109,7 +117,7 @@ const initialState = {
   activeNightSteps: [],
 
   // ── Fin de Partie
-  winner: null,      // null | 'village' | 'loups' | 'joueur-flute' | 'loup-blanc' | 'ange' | 'amoureux' | 'aucun'
+  winner: null,      // null | 'village' | 'loups' | 'joueur-flute' | 'loup-blanc' | 'amoureux' | 'aucun'
   charmedIds: [],    // IDs charmés par le Joueur de Flûte
   wildChildModelId: null,
   chienLoupSide: null, // 'village' | 'loup'
@@ -132,6 +140,7 @@ const initialState = {
   chevalierRevengeData: null, // { chevalierId, wolfId }
   corbeauTargetId: null,      // Cible désignée par le corbeau
   foxPowerLost: false,        // Le renard a-t-il perdu son pouvoir ?
+  hasWhiteWolfKilledWolf: false, // Le Loup Blanc a-t-il déjà trahi sa meute ?
 }
 
 /* ─── STORE ─────────────────────────────────────────────────── */
@@ -180,7 +189,7 @@ export const useGameStore = create((set, get) => ({
     })),
 
   /* ── Interrogatoire ───────────────────────────────────────── */
-  setTrustGauge: (val) => set({ trustGauge: Math.max(0, Math.min(100, val)) }),
+  setTrustGauge: (val) => set({ trustGauge: Math.max(-1000, Math.min(100, val)) }),
   addUnlockedClue: (clue) => set(state => ({
     unlockedClues: state.unlockedClues.includes(clue) ? state.unlockedClues : [...state.unlockedClues, clue]
   })),
@@ -277,6 +286,7 @@ export const useGameStore = create((set, get) => ({
       corbeauTargetId: null,
       foxPowerLost: false,
       foxHistory: [],
+      hasWhiteWolfKilledWolf: false,
     })
   },
   
@@ -335,22 +345,10 @@ export const useGameStore = create((set, get) => ({
 
     const loversAlive = s.lovers.length === 2 && s.players.find(p => p.id === s.lovers[0])?.isAlive;
 
-    // 1. ANGE (Victoire instantanée si mort T1)
-    if (s.dayNumber === 1 && s.phase !== 'setup' && s.phase !== 'preparation') {
-       const deadAnge = s.players.find(p => !p.isAlive && p.roleId === 'ange');
-       if (deadAnge && !s.lovers.includes(deadAnge.id)) {
-          // L'ange a gagné s'il meurt au T1 (et n'est pas amoureux)
-          set({ winner: 'ange' });
-          return;
-       }
-    }
-
     // Calcul des camps actuels
     const getTeam = (p) => getPlayerTeam(p, s.players, s);
 
-    const isWolf = (p) => getTeam(p) === 'loup';
-
-    const aliveWolves = alive.filter(p => getTeam(p) === 'loup');
+    const aliveWolves = alive.filter(p => getTeam(p) === 'loup' || p.roleId === 'loup-blanc');
     const aliveVillagers = alive.filter(p => getTeam(p) === 'village');
     const aliveSolitaries = alive.filter(p => getTeam(p) === 'solitaire');
     const alivePiper = alive.filter(p => p.roleId === 'joueur-flute');
@@ -521,18 +519,17 @@ export const useGameStore = create((set, get) => ({
     });
 
     // --- LOGIQUE CHEVALIER (Vengeance épée rouillée) ---
-    if (player.roleId === 'chevalier' && mode === 'wolves') {
+    // Se déclenche lors d'une attaque de loups (classique ou Loup Blanc)
+    if (player.roleId === 'chevalier' && (mode === 'wolves' || mode === 'white-wolf')) {
       const allPlayers = s.players;
       const index = allPlayers.findIndex(p => p.id === playerId);
       
-      const isWolf = (p) => getPlayerTeam(p, allPlayers, s) === 'loup';
-
-      // Chercher le premier loup vivant à droite (SENS HORAIRE / RIGHT)
+      // Chercher le premier loup vivant à gauche (SENS HORAIRE / CLOCKWISE)
       let contaminatedId = null;
       for (let i = 1; i < allPlayers.length; i++) {
         const targetIdx = (index + i) % allPlayers.length;
         const target = allPlayers[targetIdx];
-        if (target.isAlive && isWolf(target)) {
+        if (target.isAlive && isPlayerWolf(target, allPlayers, s)) {
           contaminatedId = target.id;
           break;
         }
@@ -612,7 +609,8 @@ export const useGameStore = create((set, get) => ({
   })),
 
   commitWhiteWolfVictim: (playerId) => set((s) => ({
-    nightActions: { ...s.nightActions, whiteWolfVictim: playerId }
+    nightActions: { ...s.nightActions, whiteWolfVictim: playerId },
+    hasWhiteWolfKilledWolf: true
   })),
 
   commitCorbeauTarget: (playerId) => set((s) => ({
@@ -661,7 +659,7 @@ export const useGameStore = create((set, get) => ({
       toKill.push({ id: nightA.grandMechantVictim, by: 'wolves' })
     }
     if (nightA.whiteWolfVictim) {
-      toKill.push({ id: nightA.whiteWolfVictim, by: 'wolves' })
+      toKill.push({ id: nightA.whiteWolfVictim, by: 'white-wolf' })
     }
 
     // 3. Exécution des éliminations
@@ -680,14 +678,7 @@ export const useGameStore = create((set, get) => ({
       const left = alivePlayers[(idx - 1 + alivePlayers.length) % alivePlayers.length];
       const right = alivePlayers[(idx + 1) % alivePlayers.length];
 
-      const isWolf = (p) => {
-        if (!p) return false;
-        // Détecte les loups via leur camp dynamique (infectés, sauvages mutés, chien-loup)
-        // On inclut aussi les solitaires comme le Loup Blanc qui font grogner l'ours.
-        return getPlayerTeam(p, updatedState.players, updatedState) === 'loup' || ROLE_BY_ID[p.roleId]?.team === 'solitaire';
-      };
-
-      if (isWolf(left) || isWolf(right)) {
+      if (isPlayerWolf(left, updatedState.players, updatedState) || isPlayerWolf(right, updatedState.players, updatedState)) {
         updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne !`, type: 'event' });
         
         // On marque le montreur comme grognant ET on marque les voisins historiques comme suspects

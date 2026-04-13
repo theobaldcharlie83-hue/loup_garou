@@ -29,6 +29,7 @@ export default function InterrogationScreen() {
     setTrustGauge,
     unlockedClues,
     addUnlockedClue,
+    hasWhiteWolfKilledWolf,
   } = useGameStore()
 
   const plush = players.find(p => p.id === activeInterrogationPlayerId)
@@ -38,6 +39,30 @@ export default function InterrogationScreen() {
   useEffect(() => {
     if (!plush) navigate('/dashboard')
   }, [plush, navigate])
+
+  /* ── Détection Trahison Loup Blanc ── */
+  useEffect(() => {
+    if (!plush || !plush.isAlive || !plush.isPlush) return;
+    
+    // On veut savoir si c'est un loup "normal" face à un loup blanc tueur
+    const alive = players.filter(p => p.isAlive);
+    const getTeam = (p) => {
+       if (p.isInfected) return 'loup';
+       if (p.roleId === 'loup-blanc') return 'loup';
+       return ROLE_BY_ID[p.roleId]?.team || 'village';
+    };
+
+    const wolves = alive.filter(p => getTeam(p) === 'loup');
+    const hasLoupBlanc = wolves.some(w => w.roleId === 'loup-blanc');
+    
+    // Condition : 2 loups restants, un loup blanc qui a déjà tué, et la peluche est l'autre loup
+    if (wolves.length === 2 && hasLoupBlanc && hasWhiteWolfKilledWolf && getTeam(plush) === 'loup' && plush.roleId !== 'loup-blanc') {
+      if (trustGauge !== -1000) {
+        setTrustGauge(-1000);
+        // On pourrait aussi ajouter un indice ou un message journal
+      }
+    }
+  }, [plush, players, hasWhiteWolfKilledWolf, trustGauge, setTrustGauge]);
 
   /* ── État de la Génération ── */
   const [choices, setChoices] = useState([])
@@ -162,7 +187,7 @@ export default function InterrogationScreen() {
         {/* ── Colonne Gauche : Avatar et Réponses ── */}
         <section className="intr-left">
           <div className="intr-avatar-wrap">
-            <div className="intr-avatar-ring">
+            <div className={`intr-avatar-ring ${trustGauge === -1000 ? 'terror-palsy' : ''}`}>
               🧸
               <div className="intr-avatar-plush-tag">🐾</div>
             </div>
@@ -173,14 +198,14 @@ export default function InterrogationScreen() {
           <div className="intr-trust-wrap">
              <div className="intr-trust-label">
                 <span>Niveau de Confiance</span>
-                <span>{trustGauge}%</span>
+                <span>{trustGauge === -1000 ? 'TERREUR ABSOLUE' : `${trustGauge}%`}</span>
              </div>
              <div className="intr-trust-bar-bg">
                 <div 
-                  className="intr-trust-bar-fill" 
+                  className={`intr-trust-bar-fill ${trustGauge === -1000 ? 'terror-state' : ''}`} 
                   style={{ 
-                    width: `${trustGauge}%`,
-                    backgroundColor: trustGauge > 70 ? '#4ade80' : trustGauge > 30 ? '#facc15' : '#ef4444'
+                    width: `${trustGauge === -1000 ? 100 : Math.max(0, trustGauge)}%`,
+                    backgroundColor: trustGauge === -1000 ? '#ff0055' : (trustGauge > 70 ? '#4ade80' : trustGauge > 30 ? '#facc15' : '#ef4444')
                   }} 
                 />
              </div>
