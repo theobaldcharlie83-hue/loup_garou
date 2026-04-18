@@ -106,8 +106,8 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          const suspicionIsPublic = !m.isAlive;
 
          // Pour le village (public), on suspecte les marqués si le montreur est mort.
-         // Pour le montreur lui-même (privé), on suspecte s'il est vivant.
-         if ((isEvaluatorTheMontreur && m.isAlive) || (suspicionIsPublic && myTeam !== 'loup' && !isEvaluatorTheMontreur)) {
+         // Pour le montreur lui-même (privé), on suspecte s'il est vivant (et toujours du côté village).
+         if ((isEvaluatorTheMontreur && m.isAlive && myTeam !== 'loup') || (suspicionIsPublic && myTeam !== 'loup' && !isEvaluatorTheMontreur)) {
              if (target.isBearSuspected) {
                  const penalty = isEvaluatorTheMontreur ? -500 : -200;
                  const reason = isEvaluatorTheMontreur 
@@ -132,8 +132,8 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          }
      }
 
-     // Bonus voisins physiques cleans (SEULEMENT si le montreur est vivant et qu'aucun grognement n'a eu lieu aujourd'hui)
-     if (plushie.roleId === 'montreur-ours' && !plushie.isGroaning && plushie.isAlive) {
+     // Bonus voisins physiques cleans (SEULEMENT si le montreur est vivant, non infecté, et qu'aucun grognement n'a eu lieu aujourd'hui)
+     if (plushie.roleId === 'montreur-ours' && !plushie.isGroaning && plushie.isAlive && myTeam !== 'loup') {
         const alivePlayers = allPlayers.filter(p => p.isAlive);
         const myIndex = alivePlayers.findIndex(x => x.id === plushie.id);
         if (myIndex !== -1) {

@@ -57,9 +57,8 @@ function shuffle(arr) {
 /* ─── UTILITAIRES DE CAMP ────────────────────────────────────── */
 export const getPlayerTeam = (player, players, state) => {
   if (!player) return 'village';
-  // Les Sœurs gardent le camp village même si infectées (règle officielle Best Of)
-  if (player.roleId === 'soeurs') return 'village';
   if (player.isInfected) return 'loup';
+  if (player.roleId === 'soeurs') return 'village';
   if (player.roleId === 'chien-loup' && state.chienLoupSide) return state.chienLoupSide;
   if (player.roleId === 'enfant-sauvage' && state.wildChildModelId) {
     const model = players.find(x => x.id === state.wildChildModelId);
@@ -423,8 +422,8 @@ export const useGameStore = create((set, get) => ({
     if (!player || !player.isAlive) return;
 
     // --- LOGIQUE ANCIEN (SURVIE LOUPS) ---
-    // Ne survit que face aux attaques de loups (Simple, Infect Pere, Grand Mechant)
-    if (player.roleId === 'ancien' && mode === 'wolves' && s.ancienLives > 1) {
+    // Ne survit que face aux attaques de loups (Simple, Infect Pere, Grand Mechant, Loup Blanc)
+    if (player.roleId === 'ancien' && (mode === 'wolves' || mode === 'white-wolf') && s.ancienLives > 1) {
        set({ 
          ancienLives: s.ancienLives - 1,
          journal: [
@@ -512,8 +511,8 @@ export const useGameStore = create((set, get) => ({
     });
 
     // --- LOGIQUE CHEVALIER (Vengeance épée rouillée) ---
-    // Se déclenche lors d'une attaque de loups (classique ou Loup Blanc)
-    if (player.roleId === 'chevalier' && (mode === 'wolves' || mode === 'white-wolf')) {
+    // Se déclenche lors d'une attaque de loups (classique ou Loup Blanc), s'il n'est pas lui-même loup
+    if (player.roleId === 'chevalier' && !player.isInfected && (mode === 'wolves' || mode === 'white-wolf')) {
       const allPlayers = s.players;
       const index = allPlayers.findIndex(p => p.id === playerId);
       
@@ -627,12 +626,17 @@ export const useGameStore = create((set, get) => ({
     // 1. Résolution Infection (immédiat pour que eliminatePlayer voit le bon état si besoin)
     if (nightA.infectedTargetId) {
       const infected = s.players.find(p => p.id === nightA.infectedTargetId);
-      set((state) => ({
-        players: state.players.map(p => 
-          p.id === nightA.infectedTargetId ? { ...p, isInfected: true } : p
-        ),
-        infectUsed: true
-      }));
+      set((state) => {
+        const infected = state.players.find(p => p.id === nightA.infectedTargetId);
+        const isPiper = infected?.roleId === 'joueur-flute';
+        return {
+          players: state.players.map(p => 
+            p.id === nightA.infectedTargetId ? { ...p, isInfected: true } : p
+          ),
+          infectUsed: true,
+          activeNightSteps: isPiper ? state.activeNightSteps.filter(st => st.id !== 'joueur-flute' && st.id !== 'joueurs-charmes') : state.activeNightSteps
+        };
+      });
       if (nightA.infectedTargetId === nightA.wolvesVictim) {
         s.pushToJournal(`L'infection a réussi ! ${infected?.name} a survécu à l'attaque et rejoint la meute.`);
       } else {
@@ -671,7 +675,8 @@ export const useGameStore = create((set, get) => ({
       const left = alivePlayers[(idx - 1 + alivePlayers.length) % alivePlayers.length];
       const right = alivePlayers[(idx + 1) % alivePlayers.length];
 
-      if (isPlayerWolf(left, updatedState.players, updatedState) || isPlayerWolf(right, updatedState.players, updatedState)) {
+      // Le montreur grogne si un voisin est loup, OU s'il est lui-même devenu un loup (infecté)
+      if (isPlayerWolf(left, updatedState.players, updatedState) || isPlayerWolf(right, updatedState.players, updatedState) || isPlayerWolf(montreur, updatedState.players, updatedState)) {
         updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne !`, type: 'event' });
         
         // On marque le montreur comme grognant ET on marque les voisins historiques comme suspects
