@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
-import { generatePlushiesVotes } from '../../services/geminiService'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
 import RulesModal from '../../components/RulesModal/RulesModal'
 import './DashboardScreen.css'
@@ -492,12 +491,18 @@ export default function DashboardScreen() {
       });
       storeState.setQAScoringData(scoringDataCurrent);
 
-      // 2) Génération Textuelle & IA
-      const aiVotes = await generatePlushiesVotes({
-         plushiesToVote: alivePlushies.map(p => ({ ...p, roleName: ROLE_BY_ID[p.roleId]?.name })),
-         allPlayers: alive,
-         journalHistory: storeState.journal,
-         qaScoringData: scoringDataCurrent
+      // 2) Vote rationnel basé sur la jauge de confiance
+      const aiVotes = alivePlushies.map(p => {
+        const matrix = scoringDataCurrent[p.id] || {};
+        const aliveOthers = alive.filter(o => o.id !== p.id && o.isAlive);
+        let targetId = null;
+        if (aliveOthers.length > 0) {
+          const candidates = aliveOthers.map(o => ({ id: o.id, score: matrix[o.id]?.score ?? 0 }));
+          const minScore = Math.min(...candidates.map(c => c.score));
+          const targets = candidates.filter(c => c.score === minScore);
+          targetId = targets[Math.floor(Math.random() * targets.length)]?.id ?? null;
+        }
+        return { plushId: p.id, voteForId: targetId };
       });
       
       // 3) Enregistrement des intentions de vote
