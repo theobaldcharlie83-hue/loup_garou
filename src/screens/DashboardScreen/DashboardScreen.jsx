@@ -62,7 +62,7 @@ export default function DashboardScreen() {
     winner, charmedIds, setCharmedIds,
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
-    chevalierContaminatedWolfId, chienLoupSide,
+    chevalierContaminatedWolfId, chienLoupSide, corbeauTargetId,
     foxPowerLost, commitFoxAction
   } = useGameStore()
 
@@ -220,8 +220,8 @@ export default function DashboardScreen() {
         // Loup Blanc : une nuit sur deux
         if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && dayNumber % 2 === 0
 
-        // Joueurs charmés : seulement si le joueur de flûte est vivant et a déjà charmé
-        if (step.id === 'joueurs-charmes') return charmedIds.length > 0 && players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
+        // Joueurs charmés : toujours inclus si le joueur de flûte est vivant (il charmera ce tour ou les charmes précédents se reconnaissent)
+        if (step.id === 'joueurs-charmes') return players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
 
         // Corbeau : chaque nuit s'il est en jeu
         if (step.id === 'corbeau') return activeRoles.has('corbeau')
@@ -368,6 +368,8 @@ export default function DashboardScreen() {
         if (prev.length >= 2) return prev
         return [...prev, selectedPlayer.id]
       })
+    } else if (currentNightStepId === 'corbeau') {
+      setNightSelection([selectedPlayer.id])
     } else if (currentNightStepId === 'chien-loup') {
       useGameStore.getState().setChienLoupSide(actionType);
       setNightSelection(['done']);
@@ -476,6 +478,16 @@ export default function DashboardScreen() {
       setNightSelection([]);
       setNightStepIndex(idx => idx + 1);
     }
+  }
+
+  const handleAdvanceNightPhase = () => {
+    useGameStore.getState().pushUndoSnapshot()
+    advanceNightPhase()
+  }
+
+  const handleUndoAction = () => {
+    useGameStore.getState().popUndoSnapshot()
+    setNightSelection([])
   }
 
   const handlePlushiesVote = async () => {
@@ -721,7 +733,7 @@ export default function DashboardScreen() {
                   {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
                   {(player.deathCause === 'white-wolf' || nightActions.whiteWolfVictim === player.id) && <div className="av-temp-badge white-wolf-kill" title="Dévoré par le Loup Blanc" aria-hidden="true">🤍💀</div>}
                   {player.id === chevalierContaminatedWolfId && <div className="av-contaminated-badge" title="Contaminé par la rouille" aria-hidden="true">⚔️</div>}
-                  {player.id === useGameStore.getState().corbeauTargetId && <div className="av-corbeau-badge" title="Cible du Corbeau (2 voix)" aria-hidden="true">🐦</div>}
+                  {player.id === corbeauTargetId && <div className="av-corbeau-badge" title="Cible du Corbeau (2 voix)" aria-hidden="true">🐦</div>}
 
                   {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
@@ -744,8 +756,9 @@ export default function DashboardScreen() {
             <div className="night-step-card end-night">
               <h3>Répartition et Vérification</h3>
               <p style={{marginBottom: 20}}>Cliquez sur un humain pour intervertir secrètement son rôle. Quand tout est prêt, lancez la partie !</p>
-              <button className="header-btn primary-action" style={{ alignSelf: 'center', fontSize: '1.2rem', padding: '12px 24px' }} onClick={handlePhaseToggle}>
-                <span aria-hidden="true">☀️ </span> Lancer la Partie (Nuit 1)
+              <button className="btn-launch-night" onClick={handlePhaseToggle}>
+                <span className="launch-icon" aria-hidden="true">🌙</span>
+                Lancer la Partie — Nuit 1
               </button>
             </div>
           )}
@@ -1087,13 +1100,14 @@ export default function DashboardScreen() {
                   {/* ── Bouton Passer ── */}
                   <button
                     className="night-step-btn"
-                    onClick={advanceNightPhase}
+                    onClick={handleAdvanceNightPhase}
                     disabled={
                       (currentStepInfo.id === 'loup-simple' && !nightActions.wolvesVictim) ||
                       (currentStepInfo.id === 'voyante' && !nightActions.seerSeen) ||
                       (currentStepInfo.id === 'cupidon' && nightSelection.length < 2) ||
                       (currentStepInfo.id === 'enfant-sauvage' && !wildChildModelId) ||
-                      (currentStepInfo.id === 'joueur-flute' && nightSelection.length < Math.min(2, alive.filter(p => p.roleId !== 'joueur-flute' && !charmedIds.includes(p.id)).length))
+                      (currentStepInfo.id === 'joueur-flute' && nightSelection.length < Math.min(2, alive.filter(p => p.roleId !== 'joueur-flute' && !charmedIds.includes(p.id)).length)) ||
+                      (currentStepInfo.id === 'corbeau' && nightSelection.length < 1)
                     }
                   >
                     {currentStepInfo.id === 'cupidon' && nightSelection.length === 2 ? '❤️ Valider le couple'
@@ -1220,9 +1234,8 @@ export default function DashboardScreen() {
                      {(() => {
                         const tally = {};
                         // Initialisation avec les voix du Corbeau
-                        if (useGameStore.getState().corbeauTargetId) {
-                           const targetId = useGameStore.getState().corbeauTargetId;
-                           tally[targetId] = (tally[targetId] || 0) + 2;
+                        if (corbeauTargetId) {
+                           tally[corbeauTargetId] = (tally[corbeauTargetId] || 0) + 2;
                         }
 
                         Object.entries(dayVotes).forEach(([, targetId]) => {
@@ -1573,6 +1586,15 @@ export default function DashboardScreen() {
         <aside className="dashboard-sidebar right" aria-label="Journal">
           <div className="journal-header">
             <div className="journal-title">📖 Chronique du Village</div>
+            {phase === 'night' && nightStepIndex > 0 && (
+              <button
+                className="btn-undo-action"
+                onClick={handleUndoAction}
+                title="Annuler la dernière action validée"
+              >
+                ↩ Annuler
+              </button>
+            )}
           </div>
           <div className="journal-entries" role="log" aria-live="polite">
             {journal.map(entry => (

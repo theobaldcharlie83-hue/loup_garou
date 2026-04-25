@@ -78,6 +78,7 @@ const RULES_DATA = [
         <div className="role-entry"><strong>Sorcière :</strong> Potion de Guérison et Potion de Mort (1 usage chacune).</div>
         <div className="role-entry"><strong>Montreur d'Ours :</strong> Le meneur grogne si un loup est son voisin.</div>
         <div className="role-entry"><strong>Chasseur :</strong> Élimine un joueur de son choix à sa mort.</div>
+        <div className="role-entry"><strong>🐦 Corbeau :</strong> Fait partie du village. Il sera appelé chaque nuit par le meneur de jeu et désignera un joueur qui recevra automatiquement deux votes de plus contre lui lors du vote de la journée suivante.</div>
       </div>
     )
   },
@@ -132,6 +133,7 @@ const RULES_DATA = [
           <li>Renard</li>
           <li>Joueur de Flûte</li>
           <li>Joueurs charmés</li>
+          <li>Corbeau</li>
         </ol>
         <p className="note-text"><em>*Préliminaire (Nuit 1) : Cupidon, Amoureux, Deux Sœurs, Enfant Sauvage, Montreur d'Ours, Chien-Loup.</em></p>
       </div>

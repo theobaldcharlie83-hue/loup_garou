@@ -137,6 +137,7 @@ const initialState = {
   corbeauTargetId: null,      // Cible désignée par le corbeau
   foxPowerLost: false,        // Le renard a-t-il perdu son pouvoir ?
   hasWhiteWolfKilledWolf: false, // Le Loup Blanc a-t-il déjà trahi sa meute ?
+  undoStack: [],              // Historique pour annuler la dernière action de nuit
 }
 
 /* ─── STORE ─────────────────────────────────────────────────── */
@@ -293,6 +294,38 @@ export const useGameStore = create((set, get) => ({
   setCharmedIds: (ids) => set({ charmedIds: ids }),
   setWildChildModelId: (id) => set({ wildChildModelId: id }),
   setChienLoupSide: (side) => set({ chienLoupSide: side }),
+
+  pushUndoSnapshot: () => set((s) => ({
+    undoStack: [...s.undoStack, {
+      nightStepIndex: s.nightStepIndex,
+      nightActions: { ...s.nightActions },
+      corbeauTargetId: s.corbeauTargetId,
+      charmedIds: [...s.charmedIds],
+      journal: [...s.journal],
+      foxPowerLost: s.foxPowerLost,
+      foxHistory: [...(s.foxHistory || [])],
+      seenBySeer: [...s.seenBySeer],
+      witchPotions: { ...s.witchPotions },
+    }]
+  })),
+
+  popUndoSnapshot: () => set((s) => {
+    if (s.undoStack.length === 0) return s;
+    const snapshot = s.undoStack[s.undoStack.length - 1];
+    return {
+      nightStepIndex: snapshot.nightStepIndex,
+      nightActions: snapshot.nightActions,
+      corbeauTargetId: snapshot.corbeauTargetId,
+      charmedIds: snapshot.charmedIds,
+      journal: snapshot.journal,
+      foxPowerLost: snapshot.foxPowerLost,
+      foxHistory: snapshot.foxHistory,
+      seenBySeer: snapshot.seenBySeer,
+      witchPotions: snapshot.witchPotions,
+      undoStack: s.undoStack.slice(0, -1),
+    };
+  }),
+
   setIsVoting: (val) => set({ isVoting: val }),
   setTribunalLocked: (val) => set({ tribunalLocked: val }),
 
@@ -753,6 +786,7 @@ export const useGameStore = create((set, get) => ({
              nightActions: {},
              nightStepIndex: -1,
              activeNightSteps: [],
+             undoStack: [],
              journal: [...s.journal, { id: Date.now(), timestamp: new Date(), text: `Nuit 1 — Le village s'endort…`, type: 'phase' }]
            }
         }
@@ -783,11 +817,12 @@ export const useGameStore = create((set, get) => ({
           nightStepIndex: -1,
           activeNightSteps: [],
           condemnedPlayerId: null,
+          undoStack: [],
           chevalierContaminatedWolfId: contaminatedId,
           chevalierContaminationDay: contaminationDay,
           chevalierDeadWolfRevealId: revealId,
           journal: [
-             ...s.journal, 
+             ...s.journal,
              { id: Date.now(), timestamp: new Date(), text: `Nuit ${nextDay} — Le village s'endort…`, type: 'phase' }
           ]
         }

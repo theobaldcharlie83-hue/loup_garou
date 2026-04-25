@@ -189,9 +189,79 @@
   font-size: 1.2rem;
 }
 
+/* ── Bouton Lancer la Partie (Nuit 1) ─────────────────────── */
+.btn-launch-night {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 14px 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-headline);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1a0a2e;
+  background: linear-gradient(135deg, #e8b4f9 0%, #c084fc 40%, #818cf8 100%);
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.55), 0 4px 16px rgba(0,0,0,0.35);
+  transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+  animation: launch-pulse 2.4s ease-in-out infinite;
+  align-self: center;
+}
+
+.btn-launch-night:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 0 32px rgba(192, 132, 252, 0.8), 0 6px 24px rgba(0,0,0,0.4);
+}
+
+.btn-launch-night .launch-icon {
+  font-size: 1.4rem;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.6));
+}
+
+@keyframes launch-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(192,132,252,0.55), 0 4px 16px rgba(0,0,0,0.35); }
+  50%       { box-shadow: 0 0 36px rgba(192,132,252,0.85), 0 4px 20px rgba(0,0,0,0.4); }
+}
+
 /* ── Journal ──────────────────────────────────────────────── */
-.journal-header { padding: var(--space-4) var(--space-4) var(--space-2); flex-shrink: 0; }
+.journal-header {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
 .journal-title { font-family: var(--font-headline); font-size: var(--text-title-md); font-weight: 600; color: var(--color-on-surface-variant); font-style: italic; }
+
+.btn-undo-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(232,180,249,0.35);
+  background: rgba(232,180,249,0.08);
+  color: var(--color-primary);
+  font-size: var(--text-label-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--anim-fast), border-color var(--anim-fast), opacity var(--anim-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-undo-action:hover:not(:disabled) {
+  background: rgba(232,180,249,0.18);
+  border-color: var(--color-primary);
+}
+.btn-undo-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 .journal-entries { flex: 1; overflow-y: auto; padding: var(--space-2) var(--space-4) var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }
 .journal-entry { display: flex; gap: var(--space-3); align-items: flex-start; animation: fadeIn var(--anim-normal) ease-out; }
 
