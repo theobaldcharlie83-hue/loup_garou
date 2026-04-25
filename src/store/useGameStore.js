@@ -113,6 +113,8 @@ const initialState = {
   nightActions: {},
   nightStepIndex: -1,
   activeNightSteps: [],
+  nightHistorySnapshot: null, // Sauvegarde de l'état précédent la nuit
+
 
   // ── Fin de Partie
   winner: null,      // null | 'village' | 'loups' | 'joueur-flute' | 'loup-blanc' | 'amoureux' | 'aucun'
@@ -260,6 +262,7 @@ export const useGameStore = create((set, get) => ({
       nightActions: {},
       nightStepIndex: -1,
       activeNightSteps: [],
+      nightHistorySnapshot: null,
       winner: null,
       charmedIds: [],
       wildChildModelId: null, // BUG-03 fix: doit rester null jusqu'au choix explicite la Nuit 1
@@ -287,9 +290,35 @@ export const useGameStore = create((set, get) => ({
   setDayVotes: (votes) => set({ dayVotes: votes }),
 
   setQAScoringData: (data) => set({ qaScoringData: data }),
-  setNightStepIndex: (valOrFn) => set((s) => ({ 
-    nightStepIndex: typeof valOrFn === 'function' ? valOrFn(s.nightStepIndex) : valOrFn 
-  })),
+  setNightStepIndex: (valOrFn) => set((s) => {
+    const newIndex = typeof valOrFn === 'function' ? valOrFn(s.nightStepIndex) : valOrFn;
+    
+    // Si on avance d'une étape, on sauvegarde l'état actuel
+    if (newIndex > s.nightStepIndex && s.phase === 'night' && s.nightStepIndex >= 0) {
+      const snapshot = {
+        nightActions: { ...s.nightActions },
+        journal: [...s.journal],
+        charmedIds: [...s.charmedIds],
+        seenBySeer: [...s.seenBySeer],
+        witchPotions: { ...s.witchPotions },
+        corbeauTargetId: s.corbeauTargetId,
+        foxHistory: [...s.foxHistory],
+        foxPowerLost: s.foxPowerLost,
+        nightStepIndex: s.nightStepIndex
+      };
+      return { nightStepIndex: newIndex, nightHistorySnapshot: snapshot };
+    }
+    
+    return { nightStepIndex: newIndex };
+  }),
+
+  undoNightStep: () => set((s) => {
+    if (s.phase === 'night' && s.nightHistorySnapshot && s.nightStepIndex > 0) {
+      return { ...s.nightHistorySnapshot, nightHistorySnapshot: null };
+    }
+    return {};
+  }),
+
   setCharmedIds: (ids) => set({ charmedIds: ids }),
   setWildChildModelId: (id) => set({ wildChildModelId: id }),
   setChienLoupSide: (side) => set({ chienLoupSide: side }),

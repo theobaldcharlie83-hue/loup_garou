@@ -23,9 +23,17 @@ if errorlevel 1 (
 )
 
 echo [Grimoire] Serveur pret ! Ouverture de la chronique.
-:: Ouvrir Chrome en mode App (fenêtre isolée) avec un profil temporaire 
-start /wait chrome.exe --app="http://localhost:5173" --user-data-dir="%TEMP%\LoupGarouChromeProfile"
+:: Tenter de trouver Chrome
+set CHROME_PATH=
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe"
+if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_PATH=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
 
+if defined CHROME_PATH (
+    start /wait "" "%CHROME_PATH%" --app="http://localhost:5173/loup_garou/" --user-data-dir="%TEMP%\LoupGarouChromeProfile"
+) else (
+    :: Fallback sur Edge
+    start /wait msedge.exe --app="http://localhost:5173/loup_garou/" --user-data-dir="%TEMP%\LoupGarouEdgeProfile"
+)
 :: Dès que la fenêtre est fermée, on recherche le processus qui écoute sur le port 5173 pour le tuer
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173 " ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
 echo [Grimoire] Fin de session.

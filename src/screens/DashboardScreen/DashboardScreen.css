@@ -429,6 +429,47 @@
 }
 .pap-info { display: flex; flex-direction: column; gap: 2px; }
 .pap-name  { font-family: var(--font-headline); font-size: var(--text-title-md); font-weight: 600; color: var(--color-on-surface); }
+
+/* ── BOUTON LANCER LA PARTIE NUIT 1 ── */
+.btn-launch-night {
+  background: linear-gradient(135deg, #6b21a8, #4c1d95);
+  color: #fff;
+  border: 2px solid #8b5cf6;
+  border-radius: 30px;
+  padding: 14px 32px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.btn-launch-night:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.8);
+  background: linear-gradient(135deg, #7e22ce, #5b21b6);
+}
+
+.btn-launch-night:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Animation pulsante pour l'icône 🌙 */
+@keyframes pulse-moon {
+  0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5)); }
+}
+
+.btn-launch-night .moon-icon {
+  animation: pulse-moon 2s infinite ease-in-out;
+  display: inline-block;
+}
+
 .pap-role  { font-size: var(--text-body-md); color: var(--color-on-surface-variant); font-style: italic; }
 .pap-btns  { display: flex; align-items: center; gap: var(--space-3); }
 

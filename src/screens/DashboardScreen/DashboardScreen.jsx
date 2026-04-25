@@ -63,7 +63,7 @@ export default function DashboardScreen() {
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
     chevalierContaminatedWolfId, chienLoupSide,
-    foxPowerLost, commitFoxAction
+    foxPowerLost, commitFoxAction, undoNightStep, nightHistorySnapshot
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
@@ -220,8 +220,8 @@ export default function DashboardScreen() {
         // Loup Blanc : une nuit sur deux
         if (step.id === 'loup-blanc') return loupsBlancs.length > 0 && dayNumber % 2 === 0
 
-        // Joueurs charmés : seulement si le joueur de flûte est vivant et a déjà charmé
-        if (step.id === 'joueurs-charmes') return charmedIds.length > 0 && players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
+        // Joueurs charmés : toujours incluse si le Joueur de Flûte est en vie
+        if (step.id === 'joueurs-charmes') return players.some(p => p.roleId === 'joueur-flute' && p.isAlive)
 
         // Corbeau : chaque nuit s'il est en jeu
         if (step.id === 'corbeau') return activeRoles.has('corbeau')
@@ -390,6 +390,8 @@ export default function DashboardScreen() {
         setNightSelection(groupIds);
         triggerHighlight(groupIds);
       }
+    } else if (currentNightStepId === 'corbeau') {
+      setNightSelection([selectedPlayer.id]);
     }
 
     setSelectedId(null)
@@ -744,8 +746,8 @@ export default function DashboardScreen() {
             <div className="night-step-card end-night">
               <h3>Répartition et Vérification</h3>
               <p style={{marginBottom: 20}}>Cliquez sur un humain pour intervertir secrètement son rôle. Quand tout est prêt, lancez la partie !</p>
-              <button className="header-btn primary-action" style={{ alignSelf: 'center', fontSize: '1.2rem', padding: '12px 24px' }} onClick={handlePhaseToggle}>
-                <span aria-hidden="true">☀️ </span> Lancer la Partie (Nuit 1)
+              <button className="btn-launch-night" style={{ alignSelf: 'center' }} onClick={handlePhaseToggle}>
+                <span className="moon-icon" aria-hidden="true">🌙</span> Lancer la Partie — Nuit 1
               </button>
             </div>
           )}
@@ -1573,6 +1575,11 @@ export default function DashboardScreen() {
         <aside className="dashboard-sidebar right" aria-label="Journal">
           <div className="journal-header">
             <div className="journal-title">📖 Chronique du Village</div>
+            {phase === 'night' && nightHistorySnapshot && nightStepIndex > 0 && (
+              <button className="header-btn" style={{padding: '4px 8px', fontSize: '0.8rem'}} onClick={undoNightStep}>
+                ↩ Annuler
+              </button>
+            )}
           </div>
           <div className="journal-entries" role="log" aria-live="polite">
             {journal.map(entry => (

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat *)",
+      "Bash(npm uninstall *)",
+      "Bash(powershell -Command ' *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(npx kill-port *)",
+      "Bash(taskkill /f /im node.exe)",
+      "Bash(exit 0)"
+    ]
+  }
+}

@@ -74,6 +74,7 @@ const RULES_DATA = [
         <div className="role-entry"><strong>Petite Fille :</strong> Peut espionner les loups la nuit. Mourre à la place de la cible si vue.</div>
         <div className="role-entry"><strong>Renard :</strong> Flaire un groupe de 3 joueurs. Perd son pouvoir s'il se trompe.</div>
         <div className="role-entry"><strong>Chevalier :</strong> Si dévoré, contamine le loup à sa gauche qui meurt la nuit suivante.</div>
+        <div className="role-entry"><strong>Corbeau :</strong> Il désigne en secret un joueur qui recevra 2 voix supplémentaires contre lui lors du prochain tribunal.</div>
         <div className="role-entry"><strong>Ancien :</strong> Survit à une attaque. Si tué par le village, les villageois perdent leurs pouvoirs.</div>
         <div className="role-entry"><strong>Sorcière :</strong> Potion de Guérison et Potion de Mort (1 usage chacune).</div>
         <div className="role-entry"><strong>Montreur d'Ours :</strong> Le meneur grogne si un loup est son voisin.</div>
@@ -130,6 +131,7 @@ const RULES_DATA = [
           <li>Grand-Méchant-Loup</li>
           <li>Sorcière</li>
           <li>Renard</li>
+          <li>Corbeau</li>
           <li>Joueur de Flûte</li>
           <li>Joueurs charmés</li>
         </ol>
