@@ -63,7 +63,7 @@ export default function DashboardScreen() {
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
     chevalierContaminatedWolfId, chienLoupSide,
-    foxPowerLost, commitFoxAction, undoNightStep, nightHistorySnapshot
+    foxPowerLost, commitFoxAction, undoAction, pastStates
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
@@ -286,6 +286,7 @@ export default function DashboardScreen() {
   }
   
   const handlePhaseToggle = () => {
+    useGameStore.getState().saveHistory()
     setSelectedId(null)
     if (phase === 'preparation') {
       if (!captainId) {
@@ -306,6 +307,7 @@ export default function DashboardScreen() {
   }
 
   const handleEliminate = (pid) => {
+    useGameStore.getState().saveHistory()
     const p = players.find(x => x.id === pid)
     eliminatePlayer(pid, 'vote') // Élimination directe/MJ considérée comme 'vote'
     setSelectedId(null)
@@ -330,6 +332,7 @@ export default function DashboardScreen() {
   // ── Handlers NUIT (Boutons Contextuels) ──────────────
   const handleNightActionSelect = (actionType) => {
     if (!selectedPlayer) return
+    useGameStore.getState().saveHistory()
 
     if (currentNightStepId === 'cupidon') {
       setNightSelection(prev => {
@@ -398,6 +401,7 @@ export default function DashboardScreen() {
   }
 
   const advanceNightPhase = () => {
+    useGameStore.getState().saveHistory()
     const { pushToJournal } = useGameStore.getState();
 
     if (currentNightStepId === 'cupidon') {
@@ -481,6 +485,7 @@ export default function DashboardScreen() {
   }
 
   const handlePlushiesVote = async () => {
+    useGameStore.getState().saveHistory()
     setIsAiVotingLoading(true);
     try {
       const alivePlushies = alive.filter(p => p.isPlush);
@@ -1133,6 +1138,7 @@ export default function DashboardScreen() {
                     className="header-btn" 
                     style={{padding: '8px 16px'}}
                     onClick={() => {
+                      useGameStore.getState().saveHistory();
                       transferCaptaincy(p.id);
                       useGameStore.getState().pushToJournal(`🎖️ ${p.name} a été nommé nouveau Capitaine par son prédécesseur.`, 'event');
                     }}
@@ -1274,6 +1280,7 @@ export default function DashboardScreen() {
                                   {settledByCaptain && <span style={{display: 'block', fontSize: '0.8rem', color: '#ffd700', marginTop: 4}}>🎖️ Tranché par le vote du Capitaine</span>}
                                 </p>
                                 <button className="header-btn" style={{background: '#ff4d4d', color: '#fff', marginTop: 10}} onClick={() => {
+                                   useGameStore.getState().saveHistory();
                                    const targetPlayer = players.find(p=>p.id===victims[0]);
                                    useGameStore.getState().eliminatePlayer(victims[0], 'vote');
                                    useGameStore.getState().pushToJournal(`Le village s'est réuni au tribunal et a éliminé ${targetPlayer?.name} (${ROLE_BY_ID[targetPlayer?.roleId]?.name}).`, 'death');
@@ -1292,6 +1299,7 @@ export default function DashboardScreen() {
                                      <div style={{display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 5, justifyContent: 'center'}}>
                                         {victims.map(vid => (
                                           <button key={vid} className="header-btn" style={{padding: '6px 12px', fontSize: '0.9rem'}} onClick={() => {
+                                             useGameStore.getState().saveHistory();
                                              const targetPlayer = players.find(p=>p.id===vid);
                                              eliminatePlayer(vid, 'vote');
                                              useGameStore.getState().pushToJournal(`Le Capitaine a tranché l'égalité : ${targetPlayer?.name} est condamné(e).`, 'death');
@@ -1307,6 +1315,7 @@ export default function DashboardScreen() {
                                          className="header-btn" 
                                          style={{marginTop: 15, background: '#ffd700', color: '#000', alignSelf: 'center'}}
                                          onClick={() => {
+                                           useGameStore.getState().saveHistory();
                                            const validVictims = victims.filter(v => v !== captainId);
                                            const rnd = validVictims.length > 0 
                                              ? validVictims[Math.floor(Math.random() * validVictims.length)]
@@ -1381,7 +1390,7 @@ export default function DashboardScreen() {
                        </select>
                      )}
                      {selectedPlayer.isAlive && selectedPlayer.id !== captainId && (
-                        <button className="pap-btn" style={{background: '#ffd700', color: '#000'}} onClick={() => setCaptain(selectedPlayer.id)}>
+                        <button className="pap-btn" style={{background: '#ffd700', color: '#000'}} onClick={() => { useGameStore.getState().saveHistory(); setCaptain(selectedPlayer.id); }}>
                            🎖️  Désigner Capitaine
                         </button>
                      )}
@@ -1499,6 +1508,7 @@ export default function DashboardScreen() {
                       className="header-btn" 
                       style={{justifyContent:'flex-start', gap: 12}}
                       onClick={() => {
+                        useGameStore.getState().saveHistory();
                         eliminatePlayer(p.id, 'hunter');
                         useGameStore.getState().pushToJournal(`🔫 Le Chasseur tire et emporte ${p.name} dans la mort !`, 'death');
                         setChasseurPendingId(null);
@@ -1575,8 +1585,8 @@ export default function DashboardScreen() {
         <aside className="dashboard-sidebar right" aria-label="Journal">
           <div className="journal-header">
             <div className="journal-title">📖 Chronique du Village</div>
-            {phase === 'night' && nightHistorySnapshot && nightStepIndex > 0 && (
-              <button className="header-btn" style={{padding: '4px 8px', fontSize: '0.8rem'}} onClick={undoNightStep}>
+            {pastStates?.length > 0 && (
+              <button className="header-btn" style={{padding: '4px 8px', fontSize: '0.8rem'}} onClick={undoAction}>
                 ↩ Annuler
               </button>
             )}
