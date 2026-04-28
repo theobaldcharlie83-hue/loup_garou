@@ -623,7 +623,7 @@ export default function DashboardScreen() {
                   <span className="role-list-name">
                     {p.isPlush && <span aria-hidden="true">🐾</span>}
                     {p.name}
-                    {p.isInfected && <span title="Infecté" style={{marginLeft: '4px', fontSize: '1.2em'}}>☣️</span>}
+                    {(p.isInfected || nightActions.infectedTargetId === p.id) && <span title="Infecté" style={{marginLeft: '4px', fontSize: '1.2em'}}>☣️</span>}
                   </span>
                   <span className="role-list-role">{role?.icon} {role?.name ?? '?'}</span>
                 </div>
