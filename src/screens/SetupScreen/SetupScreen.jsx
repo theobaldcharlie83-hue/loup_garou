@@ -93,9 +93,9 @@ export default function SetupScreen() {
     <div className="setup-screen" role="main" aria-label="Configuration de la partie">
 
       {/* ══════════════════════════════════════════
-          PANNEAU GAUCHE — Grimoire de Setup
+          PANNEAU GAUCHE — Joueurs Humains
       ══════════════════════════════════════════ */}
-      <aside className="setup-sidebar" aria-label="Paramètres des joueurs">
+      <aside className="setup-sidebar" aria-label="Paramètres des joueurs humains">
 
         {/* En-tête */}
         <div className="setup-sidebar__header">
@@ -105,156 +105,79 @@ export default function SetupScreen() {
 
         <div className="setup-sidebar__scrollable-area">
           {/* ──── Joueurs Humains ──── */}
-        <div className={`player-block${humanCount > 0 ? ' has-players' : ''}`}>
-          <div className="player-block__header">
-            <div className="player-block__top">
-              <div>
-                <div className="player-block__label">
-                  <span aria-hidden="true">👤</span> Joueurs Humains
-                </div>
-                <div className="player-block__sublabel">Conteurs à table</div>
-              </div>
-              <div className="player-block__controls">
-                <button
-                  id="human-count-dec"
-                  className="counter-btn"
-                  onClick={() => setHumanCount(Math.max(0, humanCount - 1))}
-                  disabled={humanCount === 0}
-                  aria-label="Retirer un joueur humain"
-                >−</button>
-                <span className="counter-value" aria-label={`${humanCount} joueurs humains`}>
-                  {humanCount}
-                </span>
-                <button
-                  id="human-count-inc"
-                  className="counter-btn"
-                  onClick={() => setHumanCount(Math.min(16 - plushCount, humanCount + 1))}
-                  disabled={humanCount + plushCount >= 16}
-                  aria-label="Ajouter un joueur humain"
-                >+</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Champs de noms humains */}
-          {humanCount > 0 && (
-            <div className="player-names-list" role="group" aria-label="Noms des joueurs humains">
-              {humanNames.map((name, i) => (
-                <div className="name-input-row" key={`h-${i}`}>
-                  <label className="name-input-label" htmlFor={`human-name-${i}`}>
-                    Joueur {i + 1}
-                  </label>
-                  <div className="input-with-clear">
-                    <input
-                      id={`human-name-${i}`}
-                      className="name-input"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setHumanName(i, e.target.value)}
-                      placeholder={`Prénom du joueur ${i + 1}`}
-                      maxLength={20}
-                      autoComplete="off"
-                      list="human-suggestions"
-                      aria-label={`Nom du joueur humain ${i + 1}`}
-                    />
-                    {name && (
-                      <button
-                        className="btn-clear-input"
-                        onClick={() => setHumanName(i, '')}
-                        aria-label="Effacer le nom"
-                        title="Effacer le nom"
-                      >
-                        ✖
-                      </button>
-                    )}
+          <div className={`player-block${humanCount > 0 ? ' has-players' : ''}`}>
+            <div className="player-block__header">
+              <div className="player-block__top">
+                <div>
+                  <div className="player-block__label">
+                    <span aria-hidden="true">👤</span> Joueurs Humains
                   </div>
+                  <div className="player-block__sublabel">Conteurs à table</div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ──── Joueurs Peluches ──── */}
-        <div className={`player-block${plushCount > 0 ? ' has-players' : ''}`}>
-          <div className="player-block__header">
-            <div className="player-block__top">
-              <div>
-                <div className="player-block__label">
-                  <span aria-hidden="true">🧸</span> Joueurs Peluches
+                <div className="player-block__controls">
+                  <button
+                    id="human-count-dec"
+                    className="counter-btn"
+                    onClick={() => setHumanCount(Math.max(0, humanCount - 1))}
+                    disabled={humanCount === 0}
+                    aria-label="Retirer un joueur humain"
+                  >−</button>
+                  <span className="counter-value" aria-label={`${humanCount} joueurs humains`}>
+                    {humanCount}
+                  </span>
+                  <button
+                    id="human-count-inc"
+                    className="counter-btn"
+                    onClick={() => setHumanCount(Math.min(16 - plushCount, humanCount + 1))}
+                    disabled={humanCount + plushCount >= 16}
+                    aria-label="Ajouter un joueur humain"
+                  >+</button>
                 </div>
-                <div className="player-block__sublabel">Gardiens du foyer</div>
-              </div>
-              <div className="player-block__controls">
-                <button
-                  id="plush-count-dec"
-                  className="counter-btn"
-                  onClick={() => setPlushCount(Math.max(0, plushCount - 1))}
-                  disabled={plushCount === 0}
-                  aria-label="Retirer une peluche"
-                >−</button>
-                <span className="counter-value" aria-label={`${plushCount} peluches`}>
-                  {plushCount}
-                </span>
-                <button
-                  id="plush-count-inc"
-                  className="counter-btn"
-                  onClick={() => setPlushCount(Math.min(16 - humanCount, plushCount + 1))}
-                  disabled={humanCount + plushCount >= 16}
-                  aria-label="Ajouter une peluche"
-                >+</button>
               </div>
             </div>
-          </div>
 
-          {/* Champs de noms peluches */}
-          {plushCount > 0 && (
-            <div className="player-names-list" role="group" aria-label="Noms des peluches">
-              {plushNames.map((name, i) => (
-                <div className="name-input-row" key={`p-${i}`}>
-                  <label className="name-input-label" htmlFor={`plush-name-${i}`}>
-                    Peluche {i + 1}
-                  </label>
-                  <div className="input-with-clear">
-                    <input
-                      id={`plush-name-${i}`}
-                      className="name-input plush"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setPlushName(i, e.target.value)}
-                      placeholder="Nom de la peluche"
-                      maxLength={20}
-                      autoComplete="off"
-                      list="plush-suggestions"
-                      aria-label={`Nom de la peluche ${i + 1}`}
-                    />
-                    {name && (
-                      <button
-                        className="btn-clear-input"
-                        onClick={() => setPlushName(i, '')}
-                        aria-label="Effacer le nom"
-                        title="Effacer le nom"
-                      >
-                        ✖
-                      </button>
-                    )}
+            {/* Champs de noms humains */}
+            {humanCount > 0 && (
+              <div className="player-names-list" role="group" aria-label="Noms des joueurs humains">
+                {humanNames.map((name, i) => (
+                  <div className="name-input-row" key={`h-${i}`}>
+                    <label className="name-input-label" htmlFor={`human-name-${i}`}>
+                      Joueur {i + 1}
+                    </label>
+                    <div className="input-with-clear">
+                      <input
+                        id={`human-name-${i}`}
+                        className="name-input"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setHumanName(i, e.target.value)}
+                        placeholder={`Prénom du joueur ${i + 1}`}
+                        maxLength={20}
+                        autoComplete="off"
+                        list="human-suggestions"
+                        aria-label={`Nom du joueur humain ${i + 1}`}
+                      />
+                      {name && (
+                        <button
+                          className="btn-clear-input"
+                          onClick={() => setHumanName(i, '')}
+                          aria-label="Effacer le nom"
+                          title="Effacer le nom"
+                        >
+                          ✖
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Datalist pour autocomplétion des humains */}
         <datalist id="human-suggestions">
           {DEFAULT_HUMAN_NAMES.map((name, idx) => (
-            <option key={idx} value={name} />
-          ))}
-        </datalist>
-
-        {/* Datalist pour autocomplétion des peluches */}
-        <datalist id="plush-suggestions">
-          {DEFAULT_PLUSH_NAMES.map((name, idx) => (
             <option key={idx} value={name} />
           ))}
         </datalist>
@@ -294,7 +217,7 @@ export default function SetupScreen() {
       </aside>
 
       {/* ══════════════════════════════════════════
-          ZONE DROITE — Grille des Rôles
+          ZONE CENTRALE — Grille des Rôles
       ══════════════════════════════════════════ */}
       <main className="setup-roles-zone" aria-label="Sélection des rôles">
         <div className="roles-zone-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -304,11 +227,10 @@ export default function SetupScreen() {
           </div>
           {totalPlayers > 0 && (
             <button
-              className="intr-header-back" // Using the same style object as in interrogation
-              style={{ padding: '8px 16px', background: 'var(--color-surface-container-high)' }}
+              className="btn-choix-rapide"
               onClick={handleAutoAssign}
             >
-              ✨ Rapide
+              ✨ Choix rapide
             </button>
           )}
         </div>
@@ -345,6 +267,90 @@ export default function SetupScreen() {
           </section>
         ))}
       </main>
+
+      {/* ══════════════════════════════════════════
+          PANNEAU DROIT — Joueurs Peluches
+      ══════════════════════════════════════════ */}
+      <aside className="setup-sidebar-right" aria-label="Paramètres des peluches">
+        <div className="setup-sidebar__scrollable-area">
+          {/* ──── Joueurs Peluches ──── */}
+          <div className={`player-block${plushCount > 0 ? ' has-players' : ''}`}>
+            <div className="player-block__header">
+              <div className="player-block__top">
+                <div>
+                  <div className="player-block__label">
+                    <span aria-hidden="true">🧸</span> Joueurs Peluches
+                  </div>
+                  <div className="player-block__sublabel">Gardiens du foyer</div>
+                </div>
+                <div className="player-block__controls">
+                  <button
+                    id="plush-count-dec"
+                    className="counter-btn"
+                    onClick={() => setPlushCount(Math.max(0, plushCount - 1))}
+                    disabled={plushCount === 0}
+                    aria-label="Retirer une peluche"
+                  >−</button>
+                  <span className="counter-value" aria-label={`${plushCount} peluches`}>
+                    {plushCount}
+                  </span>
+                  <button
+                    id="plush-count-inc"
+                    className="counter-btn"
+                    onClick={() => setPlushCount(Math.min(16 - humanCount, plushCount + 1))}
+                    disabled={humanCount + plushCount >= 16}
+                    aria-label="Ajouter une peluche"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Champs de noms peluches */}
+            {plushCount > 0 && (
+              <div className="player-names-list" role="group" aria-label="Noms des peluches">
+                {plushNames.map((name, i) => (
+                  <div className="name-input-row" key={`p-${i}`}>
+                    <label className="name-input-label" htmlFor={`plush-name-${i}`}>
+                      Peluche {i + 1}
+                    </label>
+                    <div className="input-with-clear">
+                      <input
+                        id={`plush-name-${i}`}
+                        className="name-input plush"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setPlushName(i, e.target.value)}
+                        placeholder="Nom de la peluche"
+                        maxLength={20}
+                        autoComplete="off"
+                        list="plush-suggestions"
+                        aria-label={`Nom de la peluche ${i + 1}`}
+                      />
+                      {name && (
+                        <button
+                          className="btn-clear-input"
+                          onClick={() => setPlushName(i, '')}
+                          aria-label="Effacer le nom"
+                          title="Effacer le nom"
+                        >
+                          ✖
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Datalist pour autocomplétion des peluches */}
+        <datalist id="plush-suggestions">
+          {DEFAULT_PLUSH_NAMES.map((name, idx) => (
+            <option key={idx} value={name} />
+          ))}
+        </datalist>
+      </aside>
     </div>
   )
 }

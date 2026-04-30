@@ -5,7 +5,7 @@
 /* ─── Layout principal ─────────────────────────────────────── */
 .setup-screen {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 280px 1fr 280px;
   height: 100vh;
   overflow: hidden;
   background: var(--color-surface);
@@ -18,7 +18,17 @@
   padding: var(--space-5) var(--space-5) var(--space-4);
   background: var(--color-surface-container-low);
   border-right: 1px solid rgba(71, 70, 78, 0.15);
-  overflow: hidden; /* Sidebar is fixed, its inner wrap scroll */
+  overflow: hidden;
+}
+
+.setup-sidebar-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  background: var(--color-surface-container-low);
+  border-left: 1px solid rgba(71, 70, 78, 0.15);
+  overflow: hidden;
 }
 
 /* Wrapper scrollable pour les blocs de joueurs */
@@ -291,6 +301,25 @@
 
 .roles-zone-header {
   flex-shrink: 0;
+}
+
+.btn-choix-rapide {
+  padding: 8px 16px;
+  background: var(--color-surface-container-high);
+  color: var(--color-secondary);
+  border: 1px solid rgba(255, 184, 107, 0.3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-label-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--anim-fast), border-color var(--anim-fast), transform var(--anim-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-choix-rapide:hover {
+  background: var(--color-surface-container-highest);
+  border-color: var(--color-secondary);
+  transform: translateY(-1px);
 }
 .roles-zone-header h2 {
   font-family: var(--font-headline);
