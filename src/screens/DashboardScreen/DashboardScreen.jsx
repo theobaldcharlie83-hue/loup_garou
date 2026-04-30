@@ -83,6 +83,8 @@ export default function DashboardScreen() {
   const [showBearModal, setShowBearModal] = useState(false)        // Modale d'alerte pour le grognement de l'ours
   const [hasShownBearGrowl, setHasShownBearGrowl] = useState(false) // Pour ne l'afficher qu'une fois par jour
   const [showRules, setShowRules] = useState(false)               // Contrôle de la modale des règles
+  const [leftCollapsed, setLeftCollapsed] = useState(false)
+  const [rightCollapsed, setRightCollapsed] = useState(false)
   
   // Modal QA
   const [qaModalPlushId, setQaModalPlushId] = useState(null)
@@ -566,10 +568,19 @@ export default function DashboardScreen() {
       </header>
 
       {/* ═ ═  3 COLONNES ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ ═ == */}
-      <div className="dashboard-content">
+      <div className={`dashboard-content${leftCollapsed ? ' left-collapsed' : ''}${rightCollapsed ? ' right-collapsed' : ''}`}>
 
         {/* ── Gauche : Le Grimoire ──────────────────────────── */}
-        <aside className="dashboard-sidebar left" aria-label="Grimoire">
+        <aside className={`dashboard-sidebar left${leftCollapsed ? ' collapsed' : ''}`} aria-label="Grimoire">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setLeftCollapsed(v => !v)}
+            aria-label={leftCollapsed ? 'Ouvrir le Grimoire' : 'Fermer le Grimoire'}
+            title={leftCollapsed ? 'Ouvrir le Grimoire' : 'Fermer le Grimoire'}
+          >
+            {leftCollapsed ? '›' : '‹'}
+          </button>
+          <div className="sidebar-inner">
 
           {/* Stats */}
           <div className="sidebar-section">
@@ -643,6 +654,7 @@ export default function DashboardScreen() {
               <span className="btn-text">Règles du Jeu</span>
             </button>
           </div>
+          </div>{/* /sidebar-inner */}
         </aside>
 
         {/* ── Centre : Cercle des Joueurs ───────────────────── */}
@@ -1582,7 +1594,16 @@ export default function DashboardScreen() {
         </main>
 
         {/* ── Droite : Le Journal ───────────────────────────── */}
-        <aside className="dashboard-sidebar right" aria-label="Journal">
+        <aside className={`dashboard-sidebar right${rightCollapsed ? ' collapsed' : ''}`} aria-label="Journal">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setRightCollapsed(v => !v)}
+            aria-label={rightCollapsed ? 'Ouvrir la Chronique' : 'Fermer la Chronique'}
+            title={rightCollapsed ? 'Ouvrir la Chronique' : 'Fermer la Chronique'}
+          >
+            {rightCollapsed ? '‹' : '›'}
+          </button>
+          <div className="sidebar-inner">
           <div className="journal-header">
             <div className="journal-title">📖 Chronique du Village</div>
             {pastStates?.length > 0 && (
@@ -1600,6 +1621,7 @@ export default function DashboardScreen() {
             ))}
             <div ref={journalEnd} />
           </div>
+          </div>{/* /sidebar-inner */}
         </aside>
       </div>
 

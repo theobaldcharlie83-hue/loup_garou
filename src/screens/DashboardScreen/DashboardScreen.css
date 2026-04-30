@@ -78,18 +78,71 @@
   grid-template-columns: 268px 1fr 268px;
   overflow: hidden;
   height: 100%;
+  transition: grid-template-columns 300ms ease-in-out;
 }
+.dashboard-content.left-collapsed                         { grid-template-columns: 28px 1fr 268px; }
+.dashboard-content.right-collapsed                        { grid-template-columns: 268px 1fr 28px; }
+.dashboard-content.left-collapsed.right-collapsed         { grid-template-columns: 28px 1fr 28px; }
 
 /* ── Sidebars ────────────────────────────────────────────── */
 .dashboard-sidebar {
   background: var(--color-surface-container-low);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  position: relative;
 }
 .dashboard-sidebar.left  { border-right: 1px solid rgba(71,70,78,0.12); }
 .dashboard-sidebar.right { border-left:  1px solid rgba(71,70,78,0.12); }
+
+/* Contenu interne scrollable */
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 240px;
+  transition: opacity var(--anim-normal);
+}
+.dashboard-sidebar.collapsed .sidebar-inner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Bouton de repliage */
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 48px;
+  background: var(--color-surface-container-high);
+  border: 1px solid rgba(71,70,78,0.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  color: var(--color-on-surface-variant);
+  font-size: 0.75rem;
+  padding: 0;
+  transition: background var(--anim-fast), color var(--anim-fast);
+}
+.dashboard-sidebar.left .sidebar-toggle {
+  right: 0;
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.dashboard-sidebar.right .sidebar-toggle {
+  left: 0;
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.sidebar-toggle:hover {
+  background: var(--phase-accent);
+  color: var(--color-surface);
+}
 
 .sidebar-section { padding: var(--space-4) var(--space-4); border-bottom: 1px solid rgba(71,70,78,0.08); }
 .sidebar-section-title {
