@@ -275,6 +275,22 @@ export default function DashboardScreen() {
 
   /* Handlers */
   const handleAvatar = (player) => {
+    // ── Phase de préparation : swap de place par double-clic ──
+    if (phase === 'preparation') {
+      if (!selectedId) {
+        // Premier clic : sélectionner ce joueur
+        setSelectedId(player.id)
+      } else if (selectedId === player.id) {
+        // Re-clic sur le même : désélectionner
+        setSelectedId(null)
+      } else {
+        // Deuxième clic sur un autre joueur : effectuer le swap de place
+        swapPlayers(selectedId, player.id)
+        setSelectedId(null)
+      }
+      return
+    }
+
     // Si c'est le jour, seul les vivants sont sélectionnables
     if (phase === 'day' && !player.isAlive) return
     // Si c'est la nuit, la sorcière et l'Infect peuvent cibler un personnage "récemment mort"
@@ -762,7 +778,21 @@ export default function DashboardScreen() {
           {phase === 'preparation' && (
             <div className="night-step-card end-night">
               <h3>Répartition et Vérification</h3>
-              <p style={{marginBottom: 20}}>Cliquez sur un humain pour intervertir secrètement son rôle. Quand tout est prêt, lancez la partie !</p>
+              {selectedId ? (
+                <p style={{marginBottom: 20, color: '#a78bfa', fontWeight: 'bold'}}>
+                  ✦ <strong>{players.find(p => p.id === selectedId)?.name}</strong> sélectionné(e) —
+                  cliquez sur un autre joueur pour intervertir leur place.
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    style={{ marginLeft: 10, background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                    aria-label="Annuler la sélection"
+                  >✖ Annuler</button>
+                </p>
+              ) : (
+                <p style={{marginBottom: 20}}>
+                  👆 Cliquez sur un joueur, puis sur un autre pour <strong>intervertir leur place</strong> dans le cercle. Quand tout est prêt, lancez la partie !
+                </p>
+              )}
               <button className="btn-launch-night" style={{ alignSelf: 'center' }} onClick={handlePhaseToggle}>
                 <span className="moon-icon" aria-hidden="true">🌙</span> Lancer la Partie — Nuit 1
               </button>

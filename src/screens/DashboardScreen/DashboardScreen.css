@@ -370,6 +370,20 @@
 .player-avatar.target .avatar-circle { box-shadow: 0 0 16px 4px rgba(255,184,107,0.4); border-color: rgba(255,184,107,0.8); }
 .player-avatar.target-wolves .avatar-circle { box-shadow: 0 0 16px 4px rgba(255,100,100,0.6); border-color: rgba(255,100,100,0.9); }
 
+/* Phase préparation : avatar en attente de swap */
+.phase-preparation .player-avatar { cursor: crosshair; }
+.phase-preparation .player-avatar.selected .avatar-circle {
+  animation: swapPulse 1s ease-in-out infinite;
+  border-color: #a78bfa;
+  box-shadow: 0 0 20px 6px rgba(167,139,250,0.6), 0 0 40px rgba(167,139,250,0.3);
+  outline: 3px dashed #a78bfa;
+  outline-offset: 4px;
+}
+@keyframes swapPulse {
+  0%, 100% { box-shadow: 0 0 15px 4px rgba(167,139,250,0.5); }
+  50%       { box-shadow: 0 0 28px 8px rgba(167,139,250,0.9); }
+}
+
 .av-temp-badge {
   position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
   font-size: 1.8rem; z-index: 10;
