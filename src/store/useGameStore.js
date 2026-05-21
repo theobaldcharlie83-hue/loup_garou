@@ -41,7 +41,7 @@ export const DEFAULT_PLUSH_NAMES = [
 
 /* Noms par défaut pour les humains */
 export const DEFAULT_HUMAN_NAMES = [
-  'Léonie', 'Lise', 'Timéo', 'Papa', 'Maman'
+  'Timéo', 'Lise', 'Léonie', 'Papa', 'Maman'
 ]
 
 /* ─── UTILITAIRE : Fisher-Yates shuffle ────────────────────── */
@@ -79,6 +79,7 @@ export const isPlayerWolf = (player, players, state) => {
 /* ─── ÉTAT INITIAL ─────────────────────────────────────────── */
 const initialState = {
   // ── Configuration
+  activeSaveId:  null, // ID de la sauvegarde active
   humanCount:    0,
   plushCount:    0,
   humanNames:    [],   // string[]  (length === humanCount)
@@ -153,7 +154,12 @@ export const useGameStore = create((set, get) => ({
     set((s) => {
       const names = [...s.humanNames]
       while (names.length < n) {
-        names.push(DEFAULT_HUMAN_NAMES[names.length % DEFAULT_HUMAN_NAMES.length])
+        const nextIndex = names.length;
+        if (nextIndex < DEFAULT_HUMAN_NAMES.length) {
+          names.push(DEFAULT_HUMAN_NAMES[nextIndex]);
+        } else {
+          names.push(`Joueur ${nextIndex + 1}`);
+        }
       }
       names.length = n
       return { humanCount: n, humanNames: names }
@@ -162,8 +168,14 @@ export const useGameStore = create((set, get) => ({
   setPlushCount: (n) =>
     set((s) => {
       const names = [...s.plushNames]
-      while (names.length < n)
-        names.push(DEFAULT_PLUSH_NAMES[names.length % DEFAULT_PLUSH_NAMES.length])
+      while (names.length < n) {
+        const nextIndex = names.length;
+        if (nextIndex < DEFAULT_PLUSH_NAMES.length) {
+          names.push(DEFAULT_PLUSH_NAMES[nextIndex]);
+        } else {
+          names.push(`Peluche numéro ${nextIndex + 1}`);
+        }
+      }
       names.length = n
       return { plushCount: n, plushNames: names }
     }),
@@ -181,6 +193,57 @@ export const useGameStore = create((set, get) => ({
       const names = [...s.plushNames]
       names[index] = name
       return { plushNames: names }
+    }),
+
+  renamePlayer: (playerId, newName) =>
+    set((s) => {
+      const cleanName = newName.trim();
+      if (!cleanName) return {};
+
+      // 1. Update players array
+      const oldName = s.players.find(p => p.id === playerId)?.name || '';
+      if (!oldName || oldName === cleanName) return {};
+
+      const newPlayers = s.players.map(p =>
+        p.id === playerId ? { ...p, name: cleanName } : p
+      );
+
+      // 2. Update humanNames or plushNames if applicable
+      const newHumanNames = [...s.humanNames];
+      const newPlushNames = [...s.plushNames];
+      if (playerId.startsWith('h-')) {
+        const index = parseInt(playerId.substring(2), 10);
+        if (index >= 0 && index < newHumanNames.length) {
+          newHumanNames[index] = cleanName;
+        }
+      } else if (playerId.startsWith('p-')) {
+        const index = parseInt(playerId.substring(2), 10);
+        if (index >= 0 && index < newPlushNames.length) {
+          newPlushNames[index] = cleanName;
+        }
+      }
+
+      // 3. Update journal entries (replace historical occurrences of oldName with cleanName)
+      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedOldName = escapeRegExp(oldName);
+      const oldNameRegex = new RegExp(`(?<![a-zA-Z0-9À-ÿ-])${escapedOldName}(?![a-zA-Z0-9À-ÿ-])`, 'g');
+
+      const newJournal = s.journal.map(entry => {
+        if (entry.text && entry.text.includes(oldName)) {
+          return {
+            ...entry,
+            text: entry.text.replace(oldNameRegex, cleanName)
+          };
+        }
+        return entry;
+      });
+
+      return {
+        players: newPlayers,
+        humanNames: newHumanNames,
+        plushNames: newPlushNames,
+        journal: newJournal
+      };
     }),
 
   /* ── Rôles ─────────────────────────────────────────────────── */
@@ -233,9 +296,17 @@ export const useGameStore = create((set, get) => ({
     })
 
     s.plushNames.forEach((rawName, i) => {
+      let finalName = rawName.trim();
+      if (!finalName) {
+        if (i < DEFAULT_PLUSH_NAMES.length) {
+          finalName = DEFAULT_PLUSH_NAMES[i];
+        } else {
+          finalName = `Peluche numéro ${i + 1}`;
+        }
+      }
       players.push({
         id:      `p-${i}`,
-        name:    rawName.trim() || DEFAULT_PLUSH_NAMES[i % DEFAULT_PLUSH_NAMES.length],
+        name:    finalName,
         isPlush: true,
         roleId:  shuffledRoles[players.length] ?? null,
         isAlive: true,
@@ -299,7 +370,8 @@ export const useGameStore = create((set, get) => ({
   }),
 
   saveHistory: () => set((s) => {
-    const { pastStates, ...snapshot } = s;
+    const snapshot = { ...s };
+    delete snapshot.pastStates;
     // Garder seulement les 20 derniers états
     const newPastStates = [...(s.pastStates || []), snapshot].slice(-20);
     return { pastStates: newPastStates };
@@ -603,14 +675,21 @@ export const useGameStore = create((set, get) => ({
     }
   }),
 
-  commitLovers: (id1, id2) => set((s) => {
+  commitLovers: (id1, id2) => set(() => {
     return { lovers: [id1, id2] }
   }),
 
   commitInfection: (playerId) => set((s) => {
     const p = s.players.find(x => x.id === playerId);
     if (p?.roleId === 'ancien') {
-      return { infectUsed: true } // L'Ancien est immunisé
+      // L'Ancien est immunisé à l'infection — le pouvoir est consumé mais sans effet
+      return {
+        infectUsed: true,
+        journal: [
+          ...s.journal,
+          { id: Date.now(), timestamp: new Date(), text: `☣️ L'Infect Père tente d'infecter ${p.name}... mais l'Ancien est immunisé ! Le pouvoir est perdu.`, type: 'event' }
+        ]
+      }
     }
     return {
       infectUsed: true,
@@ -836,6 +915,127 @@ export const useGameStore = create((set, get) => ({
       witchPotions: { ...s.witchPotions, [type]: false },
     })),
 
+  /* ── Sauvegarde ─────────────────────────────────────────────── */
+  saveGameToLocalStorage: () => {
+    const state = get();
+    const serializableState = {};
+    Object.keys(state).forEach(key => {
+      if (typeof state[key] !== 'function') {
+        serializableState[key] = state[key];
+      }
+    });
+
+    try {
+      const savesStr = localStorage.getItem('loup_garou_saved_games');
+      let saves = [];
+      if (savesStr) {
+        saves = JSON.parse(savesStr);
+      }
+
+      const date = new Date();
+      const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' à ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const saveName = `Partie du ${formattedDate} (Jour ${state.dayNumber} - ${state.players.length} joueurs)`;
+
+      let currentSaveId = state.activeSaveId;
+      if (currentSaveId) {
+        const index = saves.findIndex(s => s.id === currentSaveId);
+        if (index !== -1) {
+          saves[index] = {
+            id: currentSaveId,
+            name: saveName,
+            timestamp: Date.now(),
+            state: { ...serializableState, activeSaveId: currentSaveId }
+          };
+        } else {
+          currentSaveId = Date.now();
+          saves.push({
+            id: currentSaveId,
+            name: saveName,
+            timestamp: Date.now(),
+            state: { ...serializableState, activeSaveId: currentSaveId }
+          });
+        }
+      } else {
+        currentSaveId = Date.now();
+        saves.push({
+          id: currentSaveId,
+          name: saveName,
+          timestamp: Date.now(),
+          state: { ...serializableState, activeSaveId: currentSaveId }
+        });
+      }
+
+      localStorage.setItem('loup_garou_saved_games', JSON.stringify(saves));
+      localStorage.setItem('loup_garou_saved_game', JSON.stringify({ ...serializableState, activeSaveId: currentSaveId }));
+      set({ activeSaveId: currentSaveId });
+    } catch (e) {
+      console.error("Failed to save game to localStorage:", e);
+    }
+  },
+
+  loadGameFromLocalStorage: (id = null) => {
+    try {
+      if (id) {
+        const savesStr = localStorage.getItem('loup_garou_saved_games');
+        if (savesStr) {
+          const saves = JSON.parse(savesStr);
+          const save = saves.find(s => s.id === id);
+          if (save) {
+            const parsed = save.state;
+            if (parsed.journal) {
+              parsed.journal = parsed.journal.map(entry => ({
+                ...entry,
+                timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+              }));
+            }
+            set({ ...parsed, activeSaveId: id });
+            return true;
+          }
+        }
+      } else {
+        const saved = localStorage.getItem('loup_garou_saved_game');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.journal) {
+            parsed.journal = parsed.journal.map(entry => ({
+              ...entry,
+              timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+            }));
+          }
+          set(parsed);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load game from localStorage:", e);
+    }
+    return false;
+  },
+
+  deleteSavedGameFromLocalStorage: (id) => {
+    try {
+      const savesStr = localStorage.getItem('loup_garou_saved_games');
+      if (savesStr) {
+        let saves = JSON.parse(savesStr);
+        saves = saves.filter(s => s.id !== id);
+        localStorage.setItem('loup_garou_saved_games', JSON.stringify(saves));
+      }
+      
+      const legacySave = localStorage.getItem('loup_garou_saved_game');
+      if (legacySave) {
+        const parsed = JSON.parse(legacySave);
+        if (parsed.activeSaveId === id) {
+          localStorage.removeItem('loup_garou_saved_game');
+        }
+      }
+    } catch (e) {
+      console.error("Failed to delete saved game:", e);
+    }
+  },
+
   /* ── Reset ──────────────────────────────────────────────────── */
-  resetGame: () => set(initialState),
-}))
+  resetGame: () => {
+    set(initialState);
+  },
+})
+)

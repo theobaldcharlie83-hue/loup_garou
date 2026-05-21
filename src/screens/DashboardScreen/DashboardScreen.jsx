@@ -155,7 +155,10 @@ export default function DashboardScreen() {
 
   // ── States pour Renommage, Sauvegarde, Transitions, Modale Sorcière ──
   const [editingPlayerId, setEditingPlayerId] = useState(null)
+  const [editSource, setEditSource] = useState(null) // 'sidebar' | 'avatar'
   const [editNameValue, setEditNameValue] = useState('')
+  const editNameValueRef = useRef('') // ref pour éviter les closures stales dans onBlur
+  const renameInputRef = useRef(null)  // ref pour forcer le focus sur l'input de renommage
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [transitionPhase, setTransitionPhase] = useState('')
   const [isTransitionActive, setIsTransitionActive] = useState(false)
@@ -216,16 +219,37 @@ export default function DashboardScreen() {
   }, [phase, dayNumber]);
 
   /* ── Helpers Renommage ─────────────────────────────────────── */
-  const startEditing = (player) => {
+  const startEditing = (player, source = 'sidebar') => {
+    editNameValueRef.current = player.name
+    setEditSource(source)
     setEditingPlayerId(player.id)
     setEditNameValue(player.name)
   }
 
+  // Force le focus sur l'input dès qu'il apparaît (autoFocus ne marche pas dans les sidebars)
+  useEffect(() => {
+    if (editingPlayerId && renameInputRef.current) {
+      // setTimeout 0 pour laisser le DOM se mettre à jour avant de focus
+      const t = setTimeout(() => {
+        if (renameInputRef.current) {
+          renameInputRef.current.focus()
+          renameInputRef.current.select()
+        }
+      }, 0)
+      return () => clearTimeout(t)
+    }
+  }, [editingPlayerId])
+
   const finishEditing = (playerId) => {
-    if (editNameValue.trim() && editNameValue.trim() !== players.find(p => p.id === playerId)?.name) {
-      renamePlayer(playerId, editNameValue.trim())
+    // Utilise la ref pour avoir la valeur la plus récente même après re-renders
+    const currentValue = editNameValueRef.current.trim()
+    const originalName = players.find(p => p.id === playerId)?.name
+    if (currentValue && originalName && currentValue !== originalName) {
+      renamePlayer(playerId, currentValue)
     }
     setEditingPlayerId(null)
+    setEditSource(null)
+    editNameValueRef.current = ''
   }
 
   /* Calcul dynamique de l'ellipse */
@@ -698,6 +722,13 @@ export default function DashboardScreen() {
       } else if (currentNightStepId === 'infect-pere' && nightActions.infectedTargetId) {
         const p = players.find(x => x.id === nightActions.infectedTargetId);
         pushToJournal(`Le Père des Loups a secrètement administré son sang à ${p?.name}.`);
+      } else if (currentNightStepId === 'loup-blanc') {
+        if (nightActions.whiteWolfVictim) {
+          const p = players.find(x => x.id === nightActions.whiteWolfVictim);
+          pushToJournal(`🤍 Le Loup Blanc a décidé d'éliminer ${p?.name} de la meute cette nuit.`);
+        } else {
+          pushToJournal(`🤍 Le Loup Blanc a choisi de ne pas trahir la meute cette nuit.`);
+        }
       } else if (currentNightStepId === 'joueur-flute' && nightSelection.length > 0) {
         const newCharmed = [...charmedIds]
         nightSelection.forEach(id => { if(!newCharmed.includes(id)) newCharmed.push(id) })
@@ -890,14 +921,70 @@ export default function DashboardScreen() {
             <div className="sidebar-section-title">📋 Joueurs &amp; Rôles</div>
             {players.map(p => {
               const role = ROLE_BY_ID[p.roleId]
+              const isEditing = editingPlayerId === p.id && editSource === 'sidebar'
               return (
-                <div key={p.id} className={`role-list-item${!p.isAlive ? ' dead' : ''}`}>
-                  <span className="role-list-name">
-                    {p.isPlush && <span aria-hidden="true">🐾</span>}
-                    {p.name}
-                    {(p.isInfected || nightActions.infectedTargetId === p.id) && <span title="Infecté" style={{marginLeft: '4px', fontSize: '1.2em'}}>☣️</span>}
-                  </span>
-                  <span className="role-list-role">{role?.icon} {role?.name ?? '?'}</span>
+                <div key={p.id} className={`role-list-item${!p.isAlive ? ' dead' : ''}`} style={{ alignItems: 'center' }}>
+                  {isEditing ? (
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={editNameValue}
+                      onChange={(e) => {
+                        editNameValueRef.current = e.target.value
+                        setEditNameValue(e.target.value)
+                      }}
+                      onBlur={() => finishEditing(p.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); finishEditing(p.id) }
+                        if (e.key === 'Escape') {
+                          e.preventDefault()
+                          setEditingPlayerId(null)
+                          editNameValueRef.current = ''
+                        }
+                      }}
+                      maxLength={20}
+                      style={{
+                        background: '#1a0f41',
+                        color: '#fff',
+                        border: '1px solid rgba(232, 180, 249, 0.7)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '0.85rem',
+                        flex: 1,
+                        minWidth: 0,
+                        outline: 'none',
+                        boxShadow: '0 0 0 2px rgba(232, 180, 249, 0.3)',
+                      }}
+                    />
+                  ) : (
+                    <span className="role-list-name" style={{ display: 'flex', alignItems: 'center', gap: '3px', flex: 1, minWidth: 0 }}>
+                      {p.isPlush && <span aria-hidden="true">🐾</span>}
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      {(p.isInfected || nightActions.infectedTargetId === p.id) && <span title="Infecté" style={{ fontSize: '1em', flexShrink: 0 }}>☣️</span>}
+                      {p.isAlive && (
+                        <button
+                          title="Modifier le nom"
+                          aria-label={`Modifier le nom de ${p.name}`}
+                          onClick={(e) => { e.stopPropagation(); startEditing(p) }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            padding: '1px 3px',
+                            opacity: 0,
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            transition: 'opacity 0.15s',
+                          }}
+                          className="rename-pencil-sidebar"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                    </span>
+                  )}
+                  <span className="role-list-role" style={{ flexShrink: 0 }}>{role?.icon} {role?.name ?? '?'}</span>
                 </div>
               )
             })}
@@ -1025,17 +1112,24 @@ export default function DashboardScreen() {
                   {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
                 <div className="av-name">
-                  {editingPlayerId === player.id ? (
+                  {editingPlayerId === player.id && editSource === 'avatar' ? (
                     <input
                       type="text"
+                      ref={renameInputRef}
                       value={editNameValue}
-                      onChange={(e) => setEditNameValue(e.target.value)}
+                      onChange={(e) => {
+                        editNameValueRef.current = e.target.value
+                        setEditNameValue(e.target.value)
+                      }}
                       onBlur={() => finishEditing(player.id)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') finishEditing(player.id);
-                        if (e.key === 'Escape') setEditingPlayerId(null);
+                        if (e.key === 'Enter') finishEditing(player.id)
+                        if (e.key === 'Escape') {
+                          setEditingPlayerId(null)
+                          setEditSource(null)
+                          editNameValueRef.current = ''
+                        }
                       }}
-                      autoFocus
                       maxLength={20}
                       onClick={(e) => e.stopPropagation()}
                       className="rename-input-avatar"
@@ -1053,7 +1147,7 @@ export default function DashboardScreen() {
                   ) : (
                     <span onDoubleClick={(e) => {
                       e.stopPropagation();
-                      startEditing(player);
+                      startEditing(player, 'avatar');
                     }}>
                       {player.name}
                     </span>
@@ -1451,6 +1545,7 @@ export default function DashboardScreen() {
                       : currentStepInfo.id === 'montreur-ours' ? '🐻 Position mémorisée'
                       : currentStepInfo.id === 'joueurs-charmes' ? '🎶 Reconnaissance terminée'
                       : currentStepInfo.id === 'renard' ? (nightSelection.length === 3 ? '🦊 Valider le flair' : '🦊 Ne pas utiliser son flair')
+                      : currentStepInfo.id === 'loup-blanc' ? (nightActions.whiteWolfVictim ? '🤍 Confirmer l’élimination' : '🤍 Ne pas trahir la meute')
                       : 'Passer à la suite'}
                   </button>
                 </>
@@ -1692,53 +1787,8 @@ export default function DashboardScreen() {
           {selectedPlayer && (
             <div className="player-action-panel" role="dialog">
               <div className="pap-info">
-                <div className="pap-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {editingPlayerId === selectedPlayer.id ? (
-                    <input
-                      type="text"
-                      value={editNameValue}
-                      onChange={(e) => setEditNameValue(e.target.value)}
-                      onBlur={() => finishEditing(selectedPlayer.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') finishEditing(selectedPlayer.id);
-                        if (e.key === 'Escape') setEditingPlayerId(null);
-                      }}
-                      autoFocus
-                      maxLength={20}
-                      className="rename-input-panel"
-                      style={{
-                        background: '#1a0f41',
-                        color: '#fff',
-                        border: '1px solid rgba(232, 180, 249, 0.5)',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        fontSize: '1.1rem',
-                        width: '100%'
-                      }}
-                    />
-                  ) : (
-                    <>
-                      {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
-                      <button
-                        className="edit-name-pencil-btn"
-                        onClick={() => startEditing(selectedPlayer)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '1rem',
-                          padding: '2px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Modifier le nom"
-                        aria-label="Modifier le nom"
-                      >
-                        ✏️
-                      </button>
-                    </>
-                  )}
+                <div className="pap-name">
+                  {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
                 </div>
                 <div className="pap-role">
                   {(() => {
@@ -2193,6 +2243,16 @@ export default function DashboardScreen() {
               >
                 🧙‍♀️ Valider les choix et continuer
               </button>
+
+              {pastStates?.length > 0 && (
+                <button
+                  className="grimoire-modal-btn cancel"
+                  style={{ width: '100%' }}
+                  onClick={undoAction}
+                >
+                  ↩ Annuler l'action précédente
+                </button>
+              )}
             </div>
           </div>
         </div>

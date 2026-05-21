@@ -212,7 +212,14 @@
   justify-content: space-between;
   padding: var(--space-1) 0;
   gap: var(--space-2);
+  border-radius: 6px;
+  padding-left: 4px;
+  padding-right: 4px;
+  transition: background 0.15s;
 }
+.role-list-item:hover { background: rgba(232, 180, 249, 0.06); }
+.role-list-item:hover .rename-pencil-sidebar { opacity: 0.6 !important; }
+.rename-pencil-sidebar:hover { opacity: 1 !important; }
 .role-list-name { font-size: var(--text-body-md); color: var(--color-on-surface); display: flex; align-items: center; gap: var(--space-1); }
 .role-list-role { font-size: var(--text-label-md); color: var(--color-on-surface-variant); font-style: italic; }
 .role-list-item.dead .role-list-name { text-decoration: line-through; color: var(--color-on-surface-variant); }

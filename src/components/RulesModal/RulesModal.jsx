@@ -53,7 +53,7 @@ const RULES_DATA = [
           <strong>Simple Loup-Garou :</strong> Se réveille chaque nuit. Ils se concertent silencieusement pour désigner une victime.
         </div>
         <div className="role-entry">
-          <strong>Infect Père des Loups :</strong> Dévore avec les loups. Une seule fois, il peut "infecter" la victime pour la transformer secrètement en Loup-Garou.
+          <strong>Infect Père des Loups :</strong> Dévore avec les loups. Une seule fois, il peut infecter un joueur (qui n'est pas déjà loup, ni la victime de ce tour) pour le rallier secrètement à la meute.
         </div>
         <div className="role-entry">
           <strong>Grand-Méchant-Loup :</strong> Tant qu'aucun loup n'est mort, il se réveille une seconde fois seul pour dévorer une autre cible.

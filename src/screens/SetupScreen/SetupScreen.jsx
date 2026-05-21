@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_CATALOG, DEFAULT_PLUSH_NAMES, DEFAULT_HUMAN_NAMES } from '../../store/useGameStore'
 import './SetupScreen.css'
@@ -14,6 +15,8 @@ const TEAM_META = {
 /* ─── Composant principal ───────────────────────────────────── */
 export default function SetupScreen() {
   const navigate = useNavigate()
+  const [savedGames, setSavedGames] = useState([])
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false)
 
   const {
     humanCount, setHumanCount,
@@ -23,11 +26,17 @@ export default function SetupScreen() {
     roleSelection, setRoleQty,
     getTotalRoles, getTotalPlayers,
     isReadyToStart, startGame,
+    loadGameFromLocalStorage,
+    deleteSavedGameFromLocalStorage,
+    players,
+    phase,
   } = useGameStore()
 
   const totalRoles   = getTotalRoles()
   const totalPlayers = getTotalPlayers()
   const ready        = isReadyToStart()
+
+  const hasActiveGame = players && players.length > 0 && phase !== 'setup'
 
   /* Rôles groupés */
   const rolesByTeam = TEAM_ORDER.reduce((acc, team) => {
@@ -39,6 +48,54 @@ export default function SetupScreen() {
     if (!ready) return
     startGame()
     navigate('/dashboard')
+  }
+
+  const loadSavedGames = () => {
+    try {
+      const listStr = localStorage.getItem('loup_garou_saved_games')
+      let list = []
+      if (listStr) {
+        list = JSON.parse(listStr)
+      }
+
+      const legacySave = localStorage.getItem('loup_garou_saved_game')
+      if (list.length === 0 && legacySave) {
+        const parsed = JSON.parse(legacySave)
+        const date = new Date()
+        const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' à ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        const saveId = parsed.activeSaveId || Date.now()
+        const newSave = {
+          id: saveId,
+          name: parsed.players ? `Partie récupérée (${parsed.players.length} joueurs)` : `Partie sauvegardée du ${formattedDate}`,
+          timestamp: Date.now(),
+          state: { ...parsed, activeSaveId: saveId }
+        }
+        list.push(newSave)
+        localStorage.setItem('loup_garou_saved_games', JSON.stringify(list))
+      }
+
+      list.sort((a, b) => b.timestamp - a.timestamp)
+      setSavedGames(list)
+    } catch (e) {
+      console.error("Error reading saved games:", e)
+    }
+  }
+
+  useEffect(() => {
+    loadSavedGames()
+  }, [])
+
+  const handleResume = (id) => {
+    const success = loadGameFromLocalStorage(id)
+    if (success) {
+      setIsResumeModalOpen(false)
+      navigate('/dashboard')
+    }
+  }
+
+  const handleDeleteSave = (id) => {
+    deleteSavedGameFromLocalStorage(id)
+    loadSavedGames()
   }
 
   const handleAutoAssign = () => {
@@ -201,6 +258,34 @@ export default function SetupScreen() {
             )}
           </div>
 
+          {hasActiveGame && (
+            <button
+              id="btn-retourner-jeu"
+              className="btn-primary setup-cta"
+              onClick={() => navigate('/dashboard')}
+              style={{ marginBottom: '10px', background: 'var(--color-secondary)', color: 'var(--color-surface)' }}
+            >
+              <span className="material-symbols-outlined icon-filled" aria-hidden="true">
+                play_arrow
+              </span>
+              Retourner à la partie en cours
+            </button>
+          )}
+
+          {savedGames.length > 0 && (
+            <button
+              id="btn-reprendre-chronique"
+              className="btn-secondary setup-cta"
+              onClick={() => setIsResumeModalOpen(true)}
+              style={{ marginBottom: '10px' }}
+            >
+              <span className="material-symbols-outlined icon-filled" aria-hidden="true">
+                restore
+              </span>
+              Reprendre une partie sauvegardée
+            </button>
+          )}
+
           <button
             id="btn-commencer-chronique"
             className="btn-primary setup-cta"
@@ -351,6 +436,46 @@ export default function SetupScreen() {
           ))}
         </datalist>
       </aside>
+
+      {/* ── MODALE SÉLECTEUR DE SAUVEGARDES ── */}
+      {isResumeModalOpen && (
+        <div className="setup-modal-overlay" onClick={() => setIsResumeModalOpen(false)}>
+          <div className="setup-modal" onClick={e => e.stopPropagation()}>
+            <div className="setup-modal-header">
+              <h2>Parties Sauvegardées</h2>
+              <button className="setup-modal-close" onClick={() => setIsResumeModalOpen(false)}>✖</button>
+            </div>
+            <div className="setup-modal-body">
+              {savedGames.length === 0 ? (
+                <p className="no-saves-text">Aucune sauvegarde trouvée.</p>
+              ) : (
+                savedGames.map((game) => (
+                  <div key={game.id} className="save-item-row">
+                    <div className="save-item-info">
+                      <span className="save-item-name">{game.name}</span>
+                    </div>
+                    <div className="save-item-actions">
+                      <button
+                        className="btn-load-save"
+                        onClick={() => handleResume(game.id)}
+                      >
+                        Charger
+                      </button>
+                      <button
+                        className="btn-delete-save"
+                        onClick={() => handleDeleteSave(game.id)}
+                        title="Supprimer la sauvegarde"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

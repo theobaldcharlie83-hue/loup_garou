@@ -12,8 +12,6 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
   const { 
     lovers = [], 
     seenBySeer = [], 
-    nightActions = {}, 
-    dayNumber = 1,
     // BUG-09 fix: le store utilise 'wildChildModelId', pas 'wildChildModel'
     charmedIds: fluteCharmed = [],
     wildChildModelId: wildChildModel = null, // alias correct
