@@ -32,7 +32,7 @@ const NIGHT_ORDER = [
   { id: 'chien-loup',      isNight1Only: true,  label: 'Appeler le Chien-Loup',                 instruction: 'Il choisit son camp : Villageois ou Loup-Garou. S\'il choisit Loup, il rejoindra la meute maintenant.' },
   // ── CHAQUE NUIT ───────────────────────────────────────────────────────────
   { id: 'loup-simple',     isNight1Only: false, defaultGroup: true, label: 'Appeler les Loups-Garous', instruction: 'Tous les Loups se réveillent et désignent leur victime. Inclut le Chien-Loup (si camp Loup), l\'Enfant Sauvage (si modèle mort), le joueur infecté. Choix OBLIGATOIRE.' },
-  { id: 'infect-pere',     isNight1Only: false, label: 'Appeler l\'Infect Père des Loups (seul)', instruction: 'Il se réveille seul. Il peut infecter la victime des Loups pour la rallier à la meute (une seule infection possible sur toute la partie).' },
+  { id: 'infect-pere',     isNight1Only: false, label: 'Appeler l\'Infect Père des Loups (seul)', instruction: "Il se réveille seul. Il peut infecter un joueur (qui n'est pas déjà loup, ni la victime de la meute de ce tour) pour le rallier à la meute (une seule infection possible sur toute la partie)." },
   { id: 'grand-mechant',   isNight1Only: false, label: 'Appeler le Grand-Méchant-Loup (seul)',   instruction: 'Il se réveille seul. Il peut désigner une 2ème victime indépendante — uniquement si aucun Loup-Garou n\'est encore mort.' },
   { id: 'loup-blanc',      isNight1Only: false, label: 'Appeler le Loup-Garou Blanc',            instruction: 'Une nuit sur deux, il peut éliminer un autre Loup-Garou de la meute pour rester le seul survivant.' },
   { id: 'sorciere',        isNight1Only: false, label: 'Appeler la Sorcière',                    instruction: 'Montrez-lui la victime des Loups. Elle peut utiliser sa potion de Vie (sauver) et/ou sa potion de Mort (empoisonner un joueur).' },
@@ -42,6 +42,66 @@ const NIGHT_ORDER = [
   { id: 'corbeau',         isNight1Only: false, label: 'Appeler le Corbeau',                     instruction: 'Il désigne en secret un joueur qui recevra 2 voix supplémentaires contre lui lors du prochain tribunal.' },
 ]
 
+const getGuidanceMessage = (phase, currentNightStepId, hasChasseurPending, hasSuccessionPending, isVoting, tribunalLocked) => {
+  if (phase === 'preparation') {
+    return "Mettez en place les joueurs dans le cercle. Double-cliquez pour échanger deux positions. Quand le cercle est prêt, désignez le Capitaine et lancez la nuit.";
+  }
+  if (hasChasseurPending) {
+    return "Le Chasseur a été éliminé ! Attendez qu'il désigne sa cible et tire son dernier coup de fusil.";
+  }
+  if (hasSuccessionPending) {
+    return "Le Capitaine est mort ! Il doit désigner un successeur parmi les survivants avant de s'éteindre.";
+  }
+  if (phase === 'day') {
+    if (tribunalLocked) {
+      return "Le condamné a été exécuté. Le village s'endort pour une nouvelle nuit.";
+    }
+    if (isVoting) {
+      return "Le Tribunal est ouvert. Enregistrez les votes des joueurs humains, faites voter les doudous si besoin, puis appliquez la sentence.";
+    }
+    return "Laissez les villageois débattre librement des événements de la nuit dernière, puis ouvrez le tribunal pour voter.";
+  }
+  
+  switch (currentNightStepId) {
+    case 'cupidon':
+      return "Cupidon se réveille et désigne les deux Amoureux de la partie.";
+    case 'amoureux':
+      return "Les Amoureux se réveillent silencieusement, se découvrent mutuellement, puis se rendorment.";
+    case 'voyante':
+      return "La Voyante se réveille et désigne un joueur pour découvrir sa véritable carte de rôle.";
+    case 'soeurs':
+      return "Les deux Sœurs ouvrent les yeux en silence pour se reconnaître.";
+    case 'enfant-sauvage':
+      return "L'Enfant Sauvage se réveille et désigne son modèle de rôle.";
+    case 'montreur-ours':
+      return "Le Montreur d'Ours se réveille brièvement pour repérer sa position dans le cercle.";
+    case 'chien-loup':
+      return "Le Chien-Loup se réveille et choisit son camp : Villageois ou Loup-Garou.";
+    case 'loup-simple':
+      return "La meute des Loups-Garous se réveille au complet et désigne sa victime de la nuit.";
+    case 'infect-pere':
+      return "L'Infect Père des Loups se réveille seul et peut infecter un joueur (qui n'est pas déjà loup, ni la victime de la meute de ce tour) pour le rallier à la meute.";
+    case 'grand-mechant':
+      return "Le Grand-Méchant-Loup se réveille et choisit une deuxième victime indépendante.";
+    case 'loup-blanc':
+      return "Le Loup-Garou Blanc se réveille et choisit s'il souhaite éliminer un autre loup.";
+    case 'sorciere':
+      return "La Sorcière examine ses grimoires et ses potions. Laissez-la décider de sauver ou d'empoisonner.";
+    case 'renard':
+      return "Le Renard désigne un joueur pour flairer son groupe de 3 (lui + ses 2 voisins).";
+    case 'joueur-flute':
+      return "Le Joueur de Flûte se réveille et désigne deux joueurs à charmer.";
+    case 'joueurs-charmes':
+      return "Tous les joueurs charmés ouvrent les yeux pour se reconnaître silencieusement.";
+    case 'corbeau':
+      return "Le Corbeau désigne en secret un joueur qui aura 2 voix de pénalité contre lui au prochain vote.";
+    case 'fin-nuit':
+      return "La nuit est terminée. Révélez les victimes de la nuit au réveil du village.";
+    default:
+      return "Suivez les instructions de l'étape de nuit affichée.";
+  }
+};
+
 export default function DashboardScreen() {
   const navigate  = useNavigate()
   const {
@@ -49,26 +109,27 @@ export default function DashboardScreen() {
     witchPotions, eliminatePlayer, setPhase,
 
     lovers, commitLovers,
-    nightActions, setNightAction,
+    nightActions,
     commitWolvesVictim, commitSeerObservation, commitWitchLife, commitWitchDeath,
     commitWildChildModel, commitGrandMechantVictim, commitWhiteWolfVictim,
     wakeUpVillage,
     infectUsed, commitInfection,
     seenBySeer, ancienLives, wildChildModelId,
 
-    dayVotes, setDayVotes,
+    dayVotes,
     nightStepIndex, setNightStepIndex,
     activeNightSteps, setActiveNightSteps,
     winner, charmedIds, setCharmedIds,
     captainId, setCaptain, transferCaptaincy, successionPendingForId,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
     chevalierContaminatedWolfId, chienLoupSide,
-    foxPowerLost, commitFoxAction, undoAction, pastStates
+    foxPowerLost, commitFoxAction, undoAction, pastStates,
+    renamePlayer, saveGameToLocalStorage
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
   const circleRef    = useRef(null)
-  const journalEnd   = useRef(null)
+  const journalRef   = useRef(null)
   const [dims, setDims] = useState({ cx: 0, cy: 0, rx: 0, ry: 0 })
 
   const [nightSelection, setNightSelection] = useState([])
@@ -92,10 +153,80 @@ export default function DashboardScreen() {
 
   const prevPlayersRef = useRef(players)
 
+  // ── States pour Renommage, Sauvegarde, Transitions, Modale Sorcière ──
+  const [editingPlayerId, setEditingPlayerId] = useState(null)
+  const [editNameValue, setEditNameValue] = useState('')
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [transitionPhase, setTransitionPhase] = useState('')
+  const [isTransitionActive, setIsTransitionActive] = useState(false)
+  const [witchUseLife, setWitchUseLife] = useState(false)
+  const [witchDeathTarget, setWitchDeathTarget] = useState('')
+  const [showGuidanceBanner, setShowGuidanceBanner] = useState(true)
+
   /* Redirect si partie non démarrée */
   useEffect(() => {
     if (players.length === 0) navigate('/')
   }, [players.length, navigate])
+
+  /* ── Screen Wake Lock API ──────────────────────────────────── */
+  useEffect(() => {
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log("Wake Lock acquired successfully");
+        }
+      } catch (err) {
+        console.warn(`Failed to acquire Wake Lock: ${err.name}, ${err.message}`);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock !== null) {
+        wakeLock.release()
+          .then(() => { wakeLock = null; })
+          .catch(err => console.error("Error releasing wake lock:", err));
+      }
+    };
+  }, []);
+
+  /* ── Overlay de Transition Jour/Nuit ───────────────────────── */
+  useEffect(() => {
+    if (phase === 'preparation') return;
+
+    setTransitionPhase(phase);
+    setIsTransitionActive(true);
+
+    const timer = setTimeout(() => {
+      setIsTransitionActive(false);
+    }, 2500); // 2.5s fading animation
+
+    return () => clearTimeout(timer);
+  }, [phase, dayNumber]);
+
+  /* ── Helpers Renommage ─────────────────────────────────────── */
+  const startEditing = (player) => {
+    setEditingPlayerId(player.id)
+    setEditNameValue(player.name)
+  }
+
+  const finishEditing = (playerId) => {
+    if (editNameValue.trim() && editNameValue.trim() !== players.find(p => p.id === playerId)?.name) {
+      renamePlayer(playerId, editNameValue.trim())
+    }
+    setEditingPlayerId(null)
+  }
 
   /* Calcul dynamique de l'ellipse */
   useEffect(() => {
@@ -118,7 +249,12 @@ export default function DashboardScreen() {
 
   /* Auto-scroll journal */
   useEffect(() => {
-    journalEnd.current?.scrollIntoView({ behavior: 'smooth' })
+    if (journalRef.current) {
+      journalRef.current.scrollTo({
+        top: journalRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }, [journal.length])
 
   // Détection automatique de la mort du Chasseur (Nuit ou Vote)
@@ -188,7 +324,6 @@ export default function DashboardScreen() {
         p.isAlive && isPlayerWolf(p, players, useGameStore.getState()) && p.roleId !== 'joueur-flute'
       )
       const loupsBlancs  = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
-      const otherWolves  = players.filter(p => p.isAlive && isPlayerWolf(p, players, useGameStore.getState()) && p.roleId !== 'loup-blanc')
       const deadWolves   = players.filter(p => !p.isAlive && isPlayerWolf(p, players, useGameStore.getState()))
 
       const steps = NIGHT_ORDER.filter(step => {
@@ -241,15 +376,39 @@ export default function DashboardScreen() {
     }
   }, [phase, dayNumber, players, nightStepIndex]) // Correct dependency array to avoid stale state issues
 
-  // Reset séparé pour le verrou du bouton IA de la sorcière
+  // Reset séparé pour le verrou du bouton IA de la sorcière, les animations et debounces
   useEffect(() => {
     setWitchIaUsedThisStep(false)
+    setIsProcessingAction(false)
+    setHighlightedIds([])
   }, [nightStepIndex, phase])
 
   /* Variables d'état utilitaires */
   const selectedPlayer  = players.find(p => p.id === selectedId)
   const currentStepInfo = phase === 'night' && nightStepIndex >= 0 && nightStepIndex < activeNightSteps.length ? activeNightSteps[nightStepIndex] : null
   const currentNightStepId = currentStepInfo?.id
+  const guidanceText = getGuidanceMessage(phase, currentNightStepId, !!chasseurPendingId, !!successionPendingForId, isVoting, tribunalLocked)
+  const [activeGuidanceText, setActiveGuidanceText] = useState('')
+
+  // Gérer l'affichage automatique du bandeau de guidage et son archivage dans la Chronique
+  useEffect(() => {
+    if (guidanceText !== activeGuidanceText) {
+      // Si on avait un texte affiché qui disparaît/change, on l'ajoute à la chronique
+      if (activeGuidanceText && showGuidanceBanner) {
+        useGameStore.getState().pushToJournal(activeGuidanceText, 'guidance');
+      }
+      setActiveGuidanceText(guidanceText || '');
+      setShowGuidanceBanner(!!guidanceText);
+    }
+  }, [guidanceText, activeGuidanceText, showGuidanceBanner])
+
+  /* ── Reset des choix de la Sorcière au début de son tour ────── */
+  useEffect(() => {
+    if (currentNightStepId === 'sorciere') {
+      setWitchUseLife(false);
+      setWitchDeathTarget('');
+    }
+  }, [currentNightStepId]);
 
   /* Drag & Drop logic */
   const { swapPlayers } = useGameStore()
@@ -275,6 +434,7 @@ export default function DashboardScreen() {
 
   /* Handlers */
   const handleAvatar = (player) => {
+    if (currentNightStepId === 'sorciere') return;
     // ── Phase de préparation : swap de place par double-clic ──
     if (phase === 'preparation') {
       if (!selectedId) {
@@ -336,6 +496,78 @@ export default function DashboardScreen() {
   }
 
   const handleReset = () => { useGameStore.getState().resetGame(); navigate('/') }
+
+  const handleSave = () => {
+    saveGameToLocalStorage()
+    setIsSaveModalOpen(true)
+  }
+
+  const handleWitchIaSelect = () => {
+    const witch = players.find(p => p.roleId === 'sorciere' && p.isAlive)
+    if (!witch) return
+
+    const potionProb = 0.1 + (dayNumber * 0.1) // N1: 20%, N2: 30%, N3: 40%...
+
+    let suggestedLife = false
+    let suggestedDeathTarget = ''
+
+    // 1. Potion de Vie
+    if (witchPotions.life && nightActions.wolvesVictim) {
+      const victim = players.find(p => p.id === nightActions.wolvesVictim)
+      const isSelf = victim?.id === witch.id
+      const isVillageois = ROLE_BY_ID[victim?.roleId]?.team === 'village'
+
+      if (isSelf) {
+        // Sauvetage automatique de soi-même (100% prob)
+        suggestedLife = true
+      } else if (isVillageois && Math.random() < potionProb) {
+        // Sauvetage probabiliste d'un autre villageois
+        suggestedLife = true
+      }
+    }
+
+    // 2. Potion de mort
+    if (witchPotions.death && !nightActions.witchKilled && Math.random() < potionProb) {
+      // Ciblage stratégique : le joueur ayant le score de confiance minimal
+      const storeState = useGameStore.getState()
+      const scores = calculatePlushieVoteScores(witch, alive, storeState)
+
+      let minScore = Infinity
+      let candidates = []
+
+      Object.entries(scores).forEach(([pid, info]) => {
+        if (pid === witch.id) return
+        // EXCLUSION OBLIGATOIRE : La victime des loups de cette nuit
+        if (pid === nightActions.wolvesVictim) return
+
+        if (info.score < minScore) {
+          minScore = info.score
+          candidates = [pid]
+        } else if (info.score === minScore) {
+          candidates.push(pid)
+        }
+      })
+
+      if (candidates.length > 0) {
+        suggestedDeathTarget = candidates[Math.floor(Math.random() * candidates.length)]
+      }
+    }
+
+    setWitchUseLife(suggestedLife)
+    setWitchDeathTarget(suggestedDeathTarget)
+    setWitchIaUsedThisStep(true)
+  }
+
+  const handleWitchValidation = () => {
+    useGameStore.getState().saveHistory()
+    if (witchUseLife && nightActions.wolvesVictim) {
+      commitWitchLife(nightActions.wolvesVictim)
+    }
+    if (witchDeathTarget) {
+      commitWitchDeath(witchDeathTarget)
+    }
+    advanceNightPhase()
+  }
 
   /* ── Highlight aléatoire ─────────────────────────────── */
   const triggerHighlight = (ids) => {
@@ -564,6 +796,9 @@ export default function DashboardScreen() {
         <div className="header-spacer" />
 
         <div className="header-actions">
+          <button className="header-btn" onClick={() => navigate('/')}>
+            🏠 Accueil
+          </button>
           {phase !== 'preparation' && (
             <>
               {phase === 'day' && (
@@ -571,12 +806,22 @@ export default function DashboardScreen() {
                   id="btn-phase-toggle"
                   className="header-btn primary-action"
                   onClick={handlePhaseToggle}
+                  disabled={!tribunalLocked}
+                  title={!tribunalLocked ? "Le village doit d'abord voter et condamner un joueur avant de s'endormir." : "Passer à la nuit"}
+                  style={!tribunalLocked ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                 >
                   <span aria-hidden="true">🌙</span> Endormir le Village
                 </button>
               )}
             </>
           )}
+          <button 
+            id="btn-save" 
+            className="header-btn"
+            onClick={handleSave}
+          >
+            💾 Sauvegarder
+          </button>
           <button id="btn-reset" className="header-btn" onClick={handleReset}>
             ↩ Reconfigurer
           </button>
@@ -676,6 +921,25 @@ export default function DashboardScreen() {
         {/* ── Centre : Cercle des Joueurs ───────────────────── */}
         <main ref={circleRef} className="player-circle-zone" aria-label="Cercle des joueurs">
 
+          {showGuidanceBanner && guidanceText && (
+            <div 
+              className="guidance-banner" 
+              role="status" 
+              aria-live="polite"
+              onClick={() => {
+                if (activeGuidanceText) {
+                  useGameStore.getState().pushToJournal(activeGuidanceText, 'guidance');
+                }
+                setShowGuidanceBanner(false);
+              }}
+              title="Cliquer pour masquer et archiver dans la chronique"
+            >
+              <span className="guidance-banner-icon">💡</span>
+              <span className="guidance-banner-text">{guidanceText}</span>
+              <span className="guidance-banner-close" aria-hidden="true">×</span>
+            </div>
+          )}
+
           {/* Guide SVG ellipse */}
           {dims.rx > 0 && (
             <svg className="ellipse-svg" aria-hidden="true">
@@ -709,7 +973,7 @@ export default function DashboardScreen() {
 
             return (
               <div
-                key={player.id}
+                key={`${player.id}-${player.name}`}
                 className={`player-avatar${!player.isAlive ? ' dead' : ''}${isSel ? ' selected' : ''}${isWolvesTarget ? ' target-wolves' : (isNightTarget ? ' target' : '')}${isRandomHighlighted ? ' random-highlight' : ''}`}
                 style={{ left, top }}
                 onClick={() => handleAvatar(player)}
@@ -760,7 +1024,41 @@ export default function DashboardScreen() {
 
                   {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
-                <div className="av-name">{player.name}</div>
+                <div className="av-name">
+                  {editingPlayerId === player.id ? (
+                    <input
+                      type="text"
+                      value={editNameValue}
+                      onChange={(e) => setEditNameValue(e.target.value)}
+                      onBlur={() => finishEditing(player.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') finishEditing(player.id);
+                        if (e.key === 'Escape') setEditingPlayerId(null);
+                      }}
+                      autoFocus
+                      maxLength={20}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rename-input-avatar"
+                      style={{
+                        background: '#1a0f41',
+                        color: '#fff',
+                        border: '1px solid rgba(232, 180, 249, 0.5)',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                        fontSize: '0.9rem',
+                        width: '80px',
+                        textAlign: 'center'
+                      }}
+                    />
+                  ) : (
+                    <span onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(player);
+                    }}>
+                      {player.name}
+                    </span>
+                  )}
+                </div>
                 <div className="av-role">
                   {player.roleId === 'ancien' && ancienLives > 0 ? `Ancien (🛡️ ${ancienLives})` : (role?.name ?? '?')}
                 </div>
@@ -799,10 +1097,9 @@ export default function DashboardScreen() {
             </div>
           )}
 
-          {phase === 'night' && currentStepInfo && (
+          {phase === 'night' && currentStepInfo && currentNightStepId !== 'sorciere' && (
             <div className={`night-step-card ${currentStepInfo.isEnd ? 'end-night' : ''}`}>
               <h3>{ROLE_BY_ID[currentStepInfo.id]?.icon} {currentStepInfo.label}</h3>
-              <p>{currentStepInfo.instruction}</p>
               
               {!currentStepInfo.isEnd ? (
                 <>
@@ -1395,8 +1692,53 @@ export default function DashboardScreen() {
           {selectedPlayer && (
             <div className="player-action-panel" role="dialog">
               <div className="pap-info">
-                <div className="pap-name">
-                  {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
+                <div className="pap-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {editingPlayerId === selectedPlayer.id ? (
+                    <input
+                      type="text"
+                      value={editNameValue}
+                      onChange={(e) => setEditNameValue(e.target.value)}
+                      onBlur={() => finishEditing(selectedPlayer.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') finishEditing(selectedPlayer.id);
+                        if (e.key === 'Escape') setEditingPlayerId(null);
+                      }}
+                      autoFocus
+                      maxLength={20}
+                      className="rename-input-panel"
+                      style={{
+                        background: '#1a0f41',
+                        color: '#fff',
+                        border: '1px solid rgba(232, 180, 249, 0.5)',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        fontSize: '1.1rem',
+                        width: '100%'
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
+                      <button
+                        className="edit-name-pencil-btn"
+                        onClick={() => startEditing(selectedPlayer)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          padding: '2px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Modifier le nom"
+                        aria-label="Modifier le nom"
+                      >
+                        ✏️
+                      </button>
+                    </>
+                  )}
                 </div>
                 <div className="pap-role">
                   {(() => {
@@ -1466,21 +1808,10 @@ export default function DashboardScreen() {
                          🐺 Dévorer ce joueur
                        </button>
                     )}
-                    {currentNightStepId === 'sorciere' && (
-                       <>
-                         {nightActions.wolvesVictim === selectedPlayer.id && witchPotions.life && (
-                           <button className="pap-btn save" onClick={() => handleNightActionSelect('life')}>
-                             💖 Potion de vie (Sauver)
-                           </button>
-                         )}
-                         {selectedPlayer.isAlive && selectedPlayer.id !== nightActions.wolvesVictim && selectedPlayer.roleId !== 'sorciere' && !nightActions.witchKilled && witchPotions.death && (
-                           <button className="pap-btn eliminate" onClick={() => handleNightActionSelect('death')}>
-                             ☠️  Potion de mort (Éliminer)
-                           </button>
-                         )}
-                       </>
-                    )}
-                    {currentNightStepId === 'infect-pere' && selectedPlayer.isAlive && !selectedPlayer.isInfected && (
+                    {currentNightStepId === 'infect-pere' && 
+                     selectedPlayer.isAlive && 
+                     !isPlayerWolf(selectedPlayer, players, useGameStore.getState()) && 
+                     selectedPlayer.id !== nightActions.wolvesVictim && (
                        <button className="pap-btn poison" onClick={() => handleNightActionSelect()}>
                          ☣️  Infecter (Infection Latente)
                        </button>
@@ -1642,14 +1973,17 @@ export default function DashboardScreen() {
               </button>
             )}
           </div>
-          <div className="journal-entries" role="log" aria-live="polite">
+          <div ref={journalRef} className="journal-entries" role="log" aria-live="polite">
             {journal.map(entry => (
-              <div key={entry.id} className="journal-entry">
-                <div className={`jdot ${entry.type}`} aria-hidden="true" />
+              <div key={entry.id} className={`journal-entry ${entry.type === 'guidance' ? 'guidance-entry' : ''}`}>
+                {entry.type === 'guidance' ? (
+                  <span className="jicon-guidance" aria-hidden="true">💡</span>
+                ) : (
+                  <div className={`jdot ${entry.type}`} aria-hidden="true" />
+                )}
                 <p className={`jtext ${entry.type}`}>{entry.text}</p>
               </div>
             ))}
-            <div ref={journalEnd} />
           </div>
           </div>{/* /sidebar-inner */}
         </aside>
@@ -1754,6 +2088,160 @@ export default function DashboardScreen() {
         </div>
       )}
 
+      {/* ── MODALE DÉDIÉE : LA SORCIÈRE ────────────────── */}
+      {phase === 'night' && currentNightStepId === 'sorciere' && (
+        <div className="grimoire-modal-overlay">
+          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+            <div className="grimoire-modal-icon">🧙‍♀️</div>
+            <h2>Tour de la Sorcière</h2>
+            <p className="grimoire-modal-desc" style={{ color: 'var(--text-body-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
+              Étape dédiée pour préparer les potions de vie et de mort.
+            </p>
+
+            <div className="witch-modal-body">
+              {/* SECTION POTION DE VIE */}
+              <div className={`witch-potion-section${!witchPotions.life ? ' disabled' : ''}`}>
+                <div className="witch-potion-header">
+                  <span className="witch-potion-title">💖 Potion de Vie</span>
+                  {witchPotions.life ? (
+                    <label className="switch-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={witchUseLife}
+                        onChange={(e) => {
+                          if (!nightActions.wolvesVictim) return;
+                          setWitchUseLife(e.target.checked);
+                        }}
+                        disabled={!nightActions.wolvesVictim}
+                      />
+                      <span>Sauver la victime</span>
+                    </label>
+                  ) : (
+                    <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>Déjà utilisée</span>
+                  )}
+                </div>
+                <div className="witch-potion-detail" style={{ fontSize: '0.9rem', color: '#ccc' }}>
+                  {nightActions.wolvesVictim ? (
+                    <span>
+                      Victime des Loups : <strong>{players.find(p => p.id === nightActions.wolvesVictim)?.name}</strong>
+                    </span>
+                  ) : (
+                    <span>Aucune victime des loups ce soir.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION POTION DE MORT */}
+              <div className={`witch-potion-section${!witchPotions.death ? ' disabled' : ''}`}>
+                <div className="witch-potion-header">
+                  <span className="witch-potion-title">☠️ Potion de Mort</span>
+                  {!witchPotions.death && <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>Déjà utilisée</span>}
+                </div>
+                {witchPotions.death && (
+                  <select
+                    className="witch-select"
+                    value={witchDeathTarget}
+                    onChange={(e) => setWitchDeathTarget(e.target.value)}
+                  >
+                    <option value="">-- Ne tuer personne --</option>
+                    {players
+                      .filter(p => p.isAlive && p.roleId !== 'sorciere')
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({ROLE_BY_ID[p.roleId]?.name})
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <div className="grimoire-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '20px' }}>
+              {/* Bouton Suggestion IA */}
+              {players.some(p => p.roleId === 'sorciere' && p.isAlive) && (witchPotions.life || witchPotions.death) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="grimoire-modal-btn"
+                    style={{
+                      background: witchIaUsedForThisStep ? 'rgba(255, 255, 255, 0.05)' : 'rgba(167, 139, 250, 0.1)',
+                      border: witchIaUsedForThisStep ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed #a78bfa',
+                      color: witchIaUsedForThisStep ? '#888' : '#a78bfa',
+                      padding: '8px 16px',
+                      fontSize: '0.9rem',
+                      alignSelf: 'center',
+                      cursor: witchIaUsedForThisStep ? 'not-allowed' : 'pointer',
+                      borderRadius: '8px',
+                      width: 'auto'
+                    }}
+                    onClick={handleWitchIaSelect}
+                    disabled={witchIaUsedForThisStep}
+                  >
+                    🎲 Suggestion Sorcière IA
+                  </button>
+                  {witchIaUsedForThisStep && (
+                    <div style={{ color: '#a78bfa', fontSize: '0.85rem', textAlign: 'center', marginTop: '4px' }}>
+                      🤖 Suggestion IA appliquée. (Vous pouvez modifier manuellement)
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                className="grimoire-modal-btn confirm"
+                style={{ width: '100%' }}
+                onClick={handleWitchValidation}
+              >
+                🧙‍♀️ Valider les choix et continuer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── OVERLAY DE TRANSITION ────────────────────────── */}
+      <div className={`phase-transition-overlay${isTransitionActive ? ' active' : ''} ${transitionPhase === 'day' ? 'to-day' : transitionPhase === 'night' ? 'to-night' : ''}`}>
+        <div className="phase-transition-content">
+          <div className="phase-transition-icon">
+            {transitionPhase === 'night' ? '🌙' : '☀️'}
+          </div>
+          <div className="phase-transition-text">
+            {transitionPhase === 'night' ? 'La Nuit Tombe...' : 'Le Jour se Lève...'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── MODALE APRES SAUVEGARDE ────────────────── */}
+      {isSaveModalOpen && (
+        <div className="grimoire-modal-overlay">
+          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+            <div className="grimoire-modal-icon">💾</div>
+            <h2>Partie Sauvegardée !</h2>
+            <p>
+              Votre progression a bien été enregistrée.<br/>
+              Que souhaitez-vous faire ?
+            </p>
+            <div className="grimoire-modal-actions" style={{ flexDirection: 'column', gap: '10px' }}>
+              <button 
+                className="grimoire-modal-btn confirm" 
+                style={{ width: '100%' }}
+                onClick={() => setIsSaveModalOpen(false)}
+              >
+                Continuer la partie
+              </button>
+              <button 
+                className="grimoire-modal-btn cancel" 
+                style={{ width: '100%' }}
+                onClick={() => {
+                  setIsSaveModalOpen(false);
+                  navigate('/');
+                }}
+              >
+                Retourner à l'accueil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
