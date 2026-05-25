@@ -1326,6 +1326,49 @@
   box-shadow: 0 0 8px rgba(187, 86, 255, 0.4);
 }
 
+@media (max-width: 480px) {
+  .grimoire-modal {
+    padding: 20px 16px;
+    border-radius: 16px;
+    width: 95%;
+  }
+
+  .grimoire-modal-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .grimoire-modal h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .grimoire-modal p {
+    font-size: 0.8rem;
+    margin-bottom: 14px;
+  }
+
+  .witch-modal-body {
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .witch-potion-section {
+    padding: 10px 12px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .witch-potion-title {
+    font-size: 0.9rem;
+  }
+
+  .witch-select {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+}
+
 /* ── Overlay de Transition Jour/Nuit ─────────────────────── */
 .phase-transition-overlay {
   position: fixed;
