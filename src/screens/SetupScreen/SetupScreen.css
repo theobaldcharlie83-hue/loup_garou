@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    SetupScreen — Écran 1 : Configuration du Village
    ============================================================ */
 
@@ -596,39 +596,33 @@
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE — SetupScreen
-   Desktop  ≥ 1024px : 3 colonnes (styles de base ci-dessus)
-   Tablette 640–1023px : 2 rangées (sidebars | rôles)
-   Mobile   < 640px  : colonne unique, défilement vertical
+   Le layout garde TOUJOURS 3 colonnes (gauche | centre | droite).
+   Chaque colonne est scrollable indépendamment.
+   La largeur des colonnes et le contenu s'adaptent à l'écran.
+
+   Desktop  >= 1024px : 280px  1fr  280px  (styles de base)
+   Tablette 640-1023px : colonnes flexibles plus etroites
+   Mobile   < 640px   : 3 colonnes compactes, contenu reduit
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Tablette Portrait & Paysage (640px – 1023px) ──────────── */
+/* ─── Tablette (640px – 1023px) — 3 colonnes ajustees ──────── */
 @media (min-width: 640px) and (max-width: 1023px) {
-  /* Grille 2 colonnes : sidebars côte à côte en haut, rôles en bas */
   .setup-screen {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: minmax(0, 42vh) 1fr;
-  }
-
-  /* Rôles : pleine largeur sur la 2e rangée
-     (l'auto-placement CSS met sidebar→col1r1, roles→r2, sidebar-right→col2r1) */
-  .setup-roles-zone {
-    grid-column: 1 / -1;
-    overflow-y: auto;
-    padding: var(--space-4) var(--space-5);
+    grid-template-columns: minmax(190px, 230px) 1fr minmax(190px, 230px);
   }
 
   .setup-sidebar,
   .setup-sidebar-right {
     overflow-y: auto;
-    padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
+    padding: var(--space-3) var(--space-3);
+    gap: var(--space-3);
   }
 
-  .setup-sidebar-right {
-    border-left: 1px solid rgba(71, 70, 78, 0.15);
+  .setup-roles-zone {
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-4);
   }
 
-  /* Laisser le parent sidebar gérer le scroll ; désactiver le double scroll */
   .setup-sidebar__scrollable-area {
     overflow: visible;
     flex: unset;
@@ -644,77 +638,41 @@
   .setup-footer { padding-top: var(--space-1); gap: var(--space-2); }
 
   .btn-primary.setup-cta,
-  .btn-secondary.setup-cta {
-    padding: var(--space-2);
-    font-size: var(--text-label-lg);
-  }
+  .btn-secondary.setup-cta { padding: var(--space-2); font-size: var(--text-label-lg); }
 
-  .counter-btn { width: 44px; height: 44px; }
-  .qty-btn { width: 40px; height: 40px; font-size: 1.1rem; }
+  .counter-btn { width: 40px; height: 40px; }
+  .qty-btn { width: 36px; height: 36px; font-size: 1rem; }
 }
 
-/* Tablette en paysage (hauteur réduite) */
-@media (min-width: 640px) and (max-width: 1023px) and (max-height: 600px) {
-  .setup-screen { grid-template-rows: minmax(0, 50vh) 1fr; }
-  .setup-sidebar__title { font-size: var(--text-title-lg); }
-  .setup-sidebar__subtitle { display: none; }
-  .setup-footer { gap: var(--space-1); }
-  .btn-primary.setup-cta,
-  .btn-secondary.setup-cta { padding: 6px var(--space-3); font-size: var(--text-label-md); }
-  .setup-summary { font-size: var(--text-label-md); padding: var(--space-2) var(--space-3); }
-  .player-block__header { padding: var(--space-2) var(--space-3); }
-}
-
-/* ─── Mobile Portrait (< 640px) ──────────────────────────────── */
-/* Disposition : colonne unique, tout le contenu défile verticalement.
-   Ordre DOM : [Sidebar gauche (humains + CTA)] → [Rôles] → [Sidebar droite (peluches)] */
+/* ─── Mobile (< 640px) — 3 colonnes compactes ───────────────── */
+/* Meme structure gauche | centre | droite que sur desktop/tablette.
+   Chaque colonne defiles independamment. Contenu compacte. */
 @media (max-width: 639px) {
   .setup-screen {
-    display: flex;
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh; /* Exclut la barre d'adresse du navigateur mobile */
+    grid-template-columns: 1fr 2fr 1fr;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .setup-sidebar,
+  .setup-sidebar-right {
     overflow-y: auto;
     overflow-x: hidden;
+    padding: var(--space-2);
+    gap: var(--space-2);
   }
 
-  /* Sidebar gauche : visible en entier, pas de scroll interne */
-  .setup-sidebar {
-    overflow: visible;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(71, 70, 78, 0.2);
-    padding: var(--space-4) var(--space-4) var(--space-3);
-    gap: var(--space-3);
-    flex-shrink: 0;
-  }
-
-  /* Sidebar droite : visible en entier, pas de scroll interne */
-  .setup-sidebar-right {
-    overflow: visible;
-    height: auto;
-    border-left: none;
-    border-bottom: 1px solid rgba(71, 70, 78, 0.2);
-    padding: var(--space-3) var(--space-4);
-    gap: var(--space-3);
-    flex-shrink: 0;
-  }
-
-  /* Zone des rôles : prend l'espace disponible */
   .setup-roles-zone {
-    overflow: visible;
-    height: auto;
-    padding: var(--space-4) var(--space-3);
-    flex-shrink: 0;
+    overflow-y: auto;
+    padding: var(--space-2);
   }
 
-  /* Désactiver le double scroll interne du sidebar (inutile en colonne unique) */
   .setup-sidebar__scrollable-area {
     overflow: visible;
     flex: unset;
     min-height: unset;
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 
   .player-names-list {
@@ -722,49 +680,75 @@
     flex: unset;
     min-height: unset;
     padding: 0;
-    gap: var(--space-2);
+    gap: var(--space-1);
   }
 
-  /* Titre compact — le "br" crée un retour à la ligne superflu sur mobile */
-  .setup-sidebar__title { font-size: 1.4rem; line-height: 1.2; }
+  .setup-sidebar__title { font-size: 0.9rem; line-height: 1.2; }
   .setup-sidebar__title br { display: none; }
   .setup-sidebar__subtitle { display: none; }
 
-  /* Footer dans le sidebar gauche */
-  .setup-footer { padding-top: var(--space-2); gap: var(--space-2); }
+  .player-block__header { padding: var(--space-2); }
+  .player-block__top { gap: 4px; flex-direction: column; align-items: flex-start; }
+  .player-block__label { font-size: 0.7rem; gap: 4px; }
+  .player-block__sublabel { display: none; }
+  .player-block__controls { gap: 4px; }
+
+  .counter-btn { width: 30px; height: 30px; font-size: 0.85rem; flex-shrink: 0; }
+  .counter-value { font-size: 0.9rem; min-width: 1.2rem; }
+
+  .name-input-label { font-size: 0.6rem; }
+  .name-input {
+    font-size: 0.72rem;
+    padding: 3px 6px;
+    padding-right: 24px;
+    min-height: 28px;
+  }
+  .btn-clear-input { width: 20px; height: 20px; font-size: 0.6rem; }
+
+  .setup-summary {
+    font-size: 0.65rem;
+    padding: var(--space-1);
+    line-height: 1.4;
+  }
+
+  .setup-footer { gap: var(--space-1); padding-top: var(--space-1); }
 
   .btn-primary.setup-cta,
   .btn-secondary.setup-cta {
-    padding: var(--space-3);
-    font-size: var(--text-label-lg);
+    padding: 5px var(--space-1);
+    font-size: 0.65rem;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .setup-summary { font-size: var(--text-label-md); }
-
-  /* Cibles tactiles agrandies */
-  .counter-btn { width: 48px; height: 48px; font-size: 1.3rem; }
-  .qty-btn { width: 40px; height: 40px; font-size: 1.1rem; }
-
-  /* Grille de rôles : 2 colonnes adaptées mobile */
-  .roles-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: var(--space-2);
+  .roles-zone-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
+  .roles-zone-header h2 { font-size: 0.85rem; }
+  .roles-zone-header p { font-size: 0.65rem; margin-top: 0; }
+  .btn-choix-rapide { padding: 4px 8px; font-size: 0.65rem; }
 
-  .role-card { padding: var(--space-3) var(--space-2); }
-  .role-card__icon { font-size: 1.6rem; }
-  .role-card__name { font-size: var(--text-label-md); min-height: unset; }
-  .role-card__qty { margin-top: 2px; }
-
-  /* Titres de section plus compacts */
-  .roles-zone-header h2 { font-size: var(--text-title-lg); }
-  .roles-zone-header p { font-size: var(--text-label-md); margin-top: 2px; }
-
-  /* Titres des équipes */
   .roles-section-title {
-    font-size: var(--text-title-md);
-    padding-bottom: var(--space-1);
-    margin-bottom: var(--space-2);
+    font-size: 0.75rem;
+    margin-bottom: var(--space-1);
+    padding-bottom: 4px;
   }
+
+  .roles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+  }
+
+  .role-card { padding: var(--space-1); gap: 3px; }
+  .role-card__icon { font-size: 1.1rem; }
+  .role-card__name { font-size: 0.58rem; min-height: unset; line-height: 1.1; }
+  .role-card__max { display: none; }
+  .role-card__qty { gap: 2px; margin-top: 0; }
+  .qty-btn { width: 24px; height: 24px; font-size: 0.7rem; }
+  .qty-value { font-size: 0.8rem; min-width: 0.9rem; }
 }
 
