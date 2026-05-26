@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    SetupScreen — Écran 1 : Configuration du Village
    ============================================================ */
 
@@ -659,7 +659,7 @@
   .setup-sidebar-right {
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--space-2);
+    padding: 6px;        /* Réduit pour gagner de la place dans la colonne étroite */
     gap: var(--space-2);
   }
 
@@ -687,14 +687,20 @@
   .setup-sidebar__title br { display: none; }
   .setup-sidebar__subtitle { display: none; }
 
-  .player-block__header { padding: var(--space-2); }
-  .player-block__top { gap: 4px; flex-direction: column; align-items: flex-start; }
-  .player-block__label { font-size: 0.7rem; gap: 4px; }
-  .player-block__sublabel { display: none; }
-  .player-block__controls { gap: 4px; }
+  .player-block__header { padding: 6px; }
 
-  .counter-btn { width: 30px; height: 30px; font-size: 0.85rem; flex-shrink: 0; }
-  .counter-value { font-size: 0.9rem; min-width: 1.2rem; }
+  /* Label : cache le texte, affiche seulement l'emoji pour gagner de la place */
+  .player-block__label { font-size: 0; gap: 0; line-height: 1; }
+  .player-block__label span[aria-hidden] { font-size: 1rem; display: inline-block; }
+  .player-block__sublabel { display: none; }
+
+  /* Contrôles en ligne : − valeur + */
+  .player-block__top { flex-direction: column; gap: 4px; align-items: stretch; }
+  .player-block__controls { gap: 4px; justify-content: center; }
+
+  /* Boutons assez petits pour tenir dans la colonne, assez grands pour le toucher */
+  .counter-btn { width: 28px; height: 28px; font-size: 1rem; flex-shrink: 0; }
+  .counter-value { font-size: 0.85rem; min-width: 1rem; }
 
   .name-input-label { font-size: 0.6rem; }
   .name-input {
