@@ -640,6 +640,19 @@
   .btn-primary.setup-cta,
   .btn-secondary.setup-cta { padding: var(--space-2); font-size: var(--text-label-lg); }
 
+  /* Stack label and controls vertically to avoid horizontal overflow in narrower sidebar */
+  .player-block__top {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: center;
+    text-align: center;
+  }
+  .player-block__controls {
+    justify-content: center;
+    width: 100%;
+    margin-top: 4px;
+  }
+
   .counter-btn { width: 40px; height: 40px; }
   .qty-btn { width: 36px; height: 36px; font-size: 1rem; }
 }
@@ -694,13 +707,34 @@
   .player-block__label span[aria-hidden] { font-size: 1rem; display: inline-block; }
   .player-block__sublabel { display: none; }
 
-  /* Contrôles en ligne : − valeur + */
-  .player-block__top { flex-direction: column; gap: 4px; align-items: stretch; }
-  .player-block__controls { gap: 4px; justify-content: center; }
+  /* Contrôles empilés verticalement pour éviter tout débordement horizontal */
+  .player-block__top { flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+  .player-block__controls {
+    display: flex;
+    flex-direction: column-reverse; /* + en haut, - en bas */
+    gap: 4px;
+    align-items: center;
+    width: 100%;
+  }
 
-  /* Boutons assez petits pour tenir dans la colonne, assez grands pour le toucher */
-  .counter-btn { width: 28px; height: 28px; font-size: 1rem; flex-shrink: 0; }
-  .counter-value { font-size: 0.85rem; min-width: 1rem; }
+  /* Boutons rectangulaires plus larges et hauts pour une zone de touche idéale sur mobile */
+  .counter-btn {
+    width: 100%;
+    max-width: 44px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .counter-value {
+    font-size: 1rem;
+    min-width: unset;
+    margin: 2px 0;
+    line-height: 1;
+  }
 
   .name-input-label { font-size: 0.6rem; }
   .name-input {
