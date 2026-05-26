@@ -2221,7 +2221,7 @@ export default function DashboardScreen() {
               </div>
             </div>
 
-            <div className="grimoire-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '20px' }}>
+            <div className="grimoire-modal-actions">
               {/* Bouton Suggestion IA */}
               {players.some(p => p.roleId === 'sorciere' && p.isAlive) && (witchPotions.life || witchPotions.death) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
@@ -2253,7 +2253,6 @@ export default function DashboardScreen() {
 
               <button
                 className="grimoire-modal-btn confirm"
-                style={{ width: '100%' }}
                 onClick={handleWitchValidation}
               >
                 🧙‍♀️ Valider les choix et continuer
@@ -2262,7 +2261,6 @@ export default function DashboardScreen() {
               {pastStates?.length > 0 && (
                 <button
                   className="grimoire-modal-btn cancel"
-                  style={{ width: '100%' }}
                   onClick={undoAction}
                 >
                   ↩ Annuler l'action précédente
@@ -2295,17 +2293,15 @@ export default function DashboardScreen() {
               Votre progression a bien été enregistrée.<br/>
               Que souhaitez-vous faire ?
             </p>
-            <div className="grimoire-modal-actions" style={{ flexDirection: 'column', gap: '10px' }}>
+            <div className="grimoire-modal-actions">
               <button 
                 className="grimoire-modal-btn confirm" 
-                style={{ width: '100%' }}
                 onClick={() => setIsSaveModalOpen(false)}
               >
                 Continuer la partie
               </button>
               <button 
                 className="grimoire-modal-btn cancel" 
-                style={{ width: '100%' }}
                 onClick={() => {
                   setIsSaveModalOpen(false);
                   navigate('/');
