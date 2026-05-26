@@ -595,46 +595,41 @@
 
 /* ─── Responsive Tablettes & Petits Écrans ────────────────── */
 @media (max-width: 1024px) {
+  /* La grille passe à 2 colonnes égales en haut + zone rôles en bas */
+  /* Note: on garde grid-template-columns car les éléments suivent
+     l'ordre du DOM naturellement sans grid-area */
   .setup-screen {
-    display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr;
-    grid-template-areas: 
-      "sidebar-left sidebar-right"
-      "roles roles";
-    height: 100vh;
-    overflow: hidden;
+    grid-template-rows: minmax(0, 42vh) 1fr;
   }
-  
-  .setup-sidebar {
-    grid-area: sidebar-left;
-    border-right: 1px solid rgba(71, 70, 78, 0.15);
-    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
-    height: 40vh;
-    padding: var(--space-3) var(--space-4);
-  }
-  
-  .setup-sidebar-right {
-    grid-area: sidebar-right;
-    border-left: none;
-    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
-    height: 40vh;
-    padding: var(--space-3) var(--space-4);
-  }
-  
+
+  /* La zone des rôles (main) doit occuper toute la largeur sur 2ème rangée */
   .setup-roles-zone {
-    grid-area: roles;
-    height: 60vh;
+    grid-column: 1 / -1;
     overflow-y: auto;
     padding: var(--space-4) var(--space-5);
   }
 
+  /* Les deux sidebars en haut : hauteur fixe et scroll interne */
+  .setup-sidebar,
+  .setup-sidebar-right {
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
+  }
+
+  .setup-sidebar-right {
+    border-left: 1px solid rgba(71, 70, 78, 0.15);
+  }
+
   .setup-sidebar__scrollable-area {
     padding-right: 0;
+    overflow: visible; /* Laisse le parent gérer le scroll */
   }
 
   .player-names-list {
     padding: var(--space-2) var(--space-3);
+    overflow-y: visible; /* Laisse le parent sidebar gérer le scroll */
   }
 
   .setup-footer {
@@ -648,14 +643,63 @@
     font-size: var(--text-label-lg);
   }
 
+  /* Boutons plus grands pour le toucher */
   .counter-btn {
     width: 44px;
     height: 44px;
   }
-  
+
   .qty-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+}
+
+/* ─── Mode Paysage Mobile (ex: S23 Ultra en paysage) ───────── */
+@media (max-width: 1024px) and (max-height: 600px) {
+  .setup-screen {
+    grid-template-rows: minmax(0, 48vh) 1fr;
+  }
+
+  .setup-sidebar,
+  .setup-sidebar-right {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .setup-sidebar__title {
+    font-size: var(--text-title-lg);
+  }
+
+  .setup-sidebar__subtitle {
+    display: none; /* Gain de place sur petit écran */
+  }
+
+  .setup-footer {
+    gap: var(--space-1);
+  }
+
+  .btn-primary.setup-cta,
+  .btn-secondary.setup-cta {
+    padding: 6px var(--space-2);
+    font-size: var(--text-label-md);
+  }
+
+  .setup-summary {
+    font-size: var(--text-label-md);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .player-block__header {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .counter-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .counter-value {
+    font-size: var(--text-title-md);
   }
 }
