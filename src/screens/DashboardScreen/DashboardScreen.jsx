@@ -124,7 +124,8 @@ export default function DashboardScreen() {
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
     chevalierContaminatedWolfId, chienLoupSide,
     foxPowerLost, commitFoxAction, undoAction, pastStates,
-    renamePlayer, saveGameToLocalStorage
+    renamePlayer, saveGameToLocalStorage,
+    corbeauTargetId, condemnedPlayerId, qaScoringData
   } = useGameStore()
 
   const [selectedId, setSelectedId] = useState(null)
@@ -266,9 +267,23 @@ export default function DashboardScreen() {
       })
     }
     compute()
-    const ro = new ResizeObserver(compute)
+    const ro = new ResizeObserver(() => {
+      compute()
+    })
     if (circleRef.current) ro.observe(circleRef.current)
-    return () => ro.disconnect()
+
+    const handleResize = () => {
+      compute()
+      setTimeout(compute, 150) // Deuxième passe après stabilisation du layout tablette/css
+    }
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+    }
   }, [])
 
   /* Auto-scroll journal */
@@ -1097,6 +1112,7 @@ export default function DashboardScreen() {
                   {isLover && <div className="av-lover-badge" title="Amoureux" aria-hidden="true">💞</div>}
                   {charmedIds.includes(player.id) && <div className="av-charmed-badge" title="Charmé" aria-hidden="true">🎶</div>}
                   {seenBySeer.includes(player.id) && <div className="av-seer-badge" title="Révélé par la Voyante" aria-hidden="true">👁️</div>}
+                  {player.id === corbeauTargetId && <div className="av-corbeau-badge" title="Cible du Corbeau (2 voix)" aria-hidden="true">🐦</div>}
                   
                   <span aria-hidden="true">{role?.icon ?? '❓'}</span>
                   {player.isPlush && <span className="av-plush-badge" aria-hidden="true">🐾</span>}
@@ -1107,7 +1123,6 @@ export default function DashboardScreen() {
                   {nightActions.witchKilled === player.id && <div className="av-temp-badge" aria-hidden="true">☠️</div>}
                   {(player.deathCause === 'white-wolf' || nightActions.whiteWolfVictim === player.id) && <div className="av-temp-badge white-wolf-kill" title="Dévoré par le Loup Blanc" aria-hidden="true">🤍💀</div>}
                   {player.id === chevalierContaminatedWolfId && <div className="av-contaminated-badge" title="Contaminé par la rouille" aria-hidden="true">⚔️</div>}
-                  {player.id === useGameStore.getState().corbeauTargetId && <div className="av-corbeau-badge" title="Cible du Corbeau (2 voix)" aria-hidden="true">🐦</div>}
 
                   {!player.isAlive && <div className="av-dead-overlay" aria-hidden="true">💀</div>}
                 </div>
@@ -1600,7 +1615,7 @@ export default function DashboardScreen() {
               <div style={{fontSize: '2.5rem'}}>🪓</div>
               <h3>Sentence prononcée</h3>
               <div className="condemned-name-display">
-                {players.find(p => p.id === useGameStore.getState().condemnedPlayerId)?.name || 'Inconnu'}
+                {players.find(p => p.id === condemnedPlayerId)?.name || 'Inconnu'}
               </div>
               <p>Le village a rendu son verdict. La nuit tombe sur le Grimoire...</p>
               <button
@@ -1651,7 +1666,7 @@ export default function DashboardScreen() {
                           return (
                             <li key={voterId} style={{display:'flex', alignItems:'center', gap: 5}}>
                               {v?.name} {t ? `élimine ${t.name}` : `ne vote pas`}
-                              {v?.isPlush && useGameStore.getState().qaScoringData[voterId] && (
+                              {v?.isPlush && qaScoringData[voterId] && (
                                  <button style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem'}} onClick={() => setQaModalPlushId(v.id)} title="Audit de vote">📊</button>
                               )}
                             </li>
@@ -1662,8 +1677,8 @@ export default function DashboardScreen() {
                      {(() => {
                         const tally = {};
                         // Initialisation avec les voix du Corbeau
-                        if (useGameStore.getState().corbeauTargetId) {
-                           const targetId = useGameStore.getState().corbeauTargetId;
+                        if (corbeauTargetId) {
+                           const targetId = corbeauTargetId;
                            tally[targetId] = (tally[targetId] || 0) + 2;
                         }
 

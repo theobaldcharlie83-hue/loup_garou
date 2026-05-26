@@ -8,7 +8,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
       "Bash(npx kill-port *)",
       "Bash(taskkill /f /im node.exe)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

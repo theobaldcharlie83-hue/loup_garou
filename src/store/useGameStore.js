@@ -431,7 +431,9 @@ export const useGameStore = create((set, get) => ({
        return;
     }
 
-    const loversAlive = s.lovers.length === 2 && s.players.find(p => p.id === s.lovers[0])?.isAlive;
+    const loversAlive = s.lovers.length === 2 && 
+                        s.players.find(p => p.id === s.lovers[0])?.isAlive && 
+                        s.players.find(p => p.id === s.lovers[1])?.isAlive;
 
     // Calcul des camps actuels
     const getTeam = (p) => getPlayerTeam(p, s.players, s);

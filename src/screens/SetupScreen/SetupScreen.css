@@ -592,3 +592,70 @@
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ─── Responsive Tablettes & Petits Écrans ────────────────── */
+@media (max-width: 1024px) {
+  .setup-screen {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 
+      "sidebar-left sidebar-right"
+      "roles roles";
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .setup-sidebar {
+    grid-area: sidebar-left;
+    border-right: 1px solid rgba(71, 70, 78, 0.15);
+    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
+    height: 40vh;
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  .setup-sidebar-right {
+    grid-area: sidebar-right;
+    border-left: none;
+    border-bottom: 1px solid rgba(71, 70, 78, 0.15);
+    height: 40vh;
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  .setup-roles-zone {
+    grid-area: roles;
+    height: 60vh;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .setup-sidebar__scrollable-area {
+    padding-right: 0;
+  }
+
+  .player-names-list {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .setup-footer {
+    padding-top: var(--space-1);
+    gap: var(--space-2);
+  }
+
+  .btn-primary.setup-cta,
+  .btn-secondary.setup-cta {
+    padding: var(--space-2);
+    font-size: var(--text-label-lg);
+  }
+
+  .counter-btn {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .qty-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+}
