@@ -439,7 +439,14 @@ export const useGameStore = create((set, get) => ({
     const getTeam = (p) => getPlayerTeam(p, s.players, s);
 
     const aliveWolves = alive.filter(p => getTeam(p) === 'loup' || p.roleId === 'loup-blanc');
-    const aliveVillagers = alive.filter(p => getTeam(p) === 'village');
+    // Un joueur « ambigu » non rallié (Enfant Sauvage dont le modèle vit, Chien-Loup
+    // n'ayant pas encore choisi) reste aligné Village pour la détection de victoire.
+    // Sans cela, les Loups pouvaient être déclarés vainqueurs alors qu'un joueur
+    // pro-village était encore en vie.
+    const aliveVillagers = alive.filter(p => {
+      const team = getTeam(p);
+      return team === 'village' || team === 'ambigu';
+    });
     const aliveSolitaries = alive.filter(p => getTeam(p) === 'solitaire');
     const alivePiper = alive.filter(p => p.roleId === 'joueur-flute');
 
