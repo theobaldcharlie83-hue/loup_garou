@@ -546,46 +546,14 @@ export const useGameStore = create((set, get) => ({
     ];
 
     // --- MALÉDICTION DE L'ANCIEN ---
-    // Se déclenche si tué par le Village (Vote, Potion Mort, Chasseur)
+    // Se déclenche si tué par le Village (Vote, Potion Mort, Chasseur).
+    // NB : les morts en chaîne (chagrin 'heartbreak', lien des Sœurs 'sister-bond')
+    // ne déclenchent PAS la malédiction, conformément aux règles.
     if (player.roleId === 'ancien' && ['vote', 'witch-death', 'hunter'].includes(mode)) {
        set({ players: newPlayers, journal: newJournal, condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId });
        get().triggerAncientCurse();
        get().checkGameOver();
        return;
-    }
-
-    // --- GESTION AMOUREUX (MORT PAR CHAGRIN) ---
-    if (s.lovers.includes(playerId)) {
-       const partnerId = s.lovers.find(id => id !== playerId);
-       const partner = s.players.find(p => p.id === partnerId);
-       if (partner && partner.isAlive) {
-          newPlayers = newPlayers.map(p => p.id === partnerId ? { ...p, isAlive: false } : p);
-          newJournal.push({ 
-            id: Date.now() + 1, 
-            timestamp: new Date(), 
-            text: `💔 ${partner.name} succombe à son chagrin d'amour pour ${player.name}...`, 
-            type: 'death' 
-          });
-       }
-    }
-
-    // --- GESTION DES DEUX SŒURS (LIEN DE SANG) ---
-    // Quand l'une meurt, l'autre meurt aussi — sauf si c'est déjà la mort de la deuxième
-    if (player.roleId === 'soeurs') {
-       const sister = s.players.find(p => p.roleId === 'soeurs' && p.id !== playerId && p.isAlive);
-       if (sister) {
-          // On vérifie que la sœur n'est pas déjà marquée morte dans newPlayers (évite double-traitement)
-          const alreadyDead = newPlayers.find(p => p.id === sister.id && !p.isAlive);
-          if (!alreadyDead) {
-             newPlayers = newPlayers.map(p => p.id === sister.id ? { ...p, isAlive: false, deathCause: 'sister-bond' } : p);
-             newJournal.push({
-               id: Date.now() + 3,
-               timestamp: new Date(),
-               text: `👯 ${sister.name} ne peut survivre sans sa sœur ${player.name}... Elle s'effondre à son tour.`,
-               type: 'death'
-             });
-          }
-       }
     }
 
     // --- SUCCESSION DU CAPITAINE ---
@@ -641,6 +609,30 @@ export const useGameStore = create((set, get) => ({
             { id: Date.now() + 10, timestamp: new Date(), text: `⚔️ Le Chevalier a blessé l'un de ses agresseurs avec son épée rouillée avant de sombrer...`, type: 'event' }
           ]
         });
+      }
+    }
+
+    // --- MORTS EN CHAÎNE (routées via eliminatePlayer pour déclencher tous les
+    // pouvoirs liés à la mort : succession du Capitaine, tir du Chasseur, etc.) ---
+    // Les gardes `isAlive` empêchent toute boucle (le partenaire/la sœur déjà mort
+    // ne re-déclenche pas la chaîne en sens inverse).
+
+    // Amoureux — mort par chagrin
+    if (s.lovers.includes(playerId)) {
+      const partnerId = s.lovers.find(id => id !== playerId);
+      const partner = get().players.find(p => p.id === partnerId);
+      if (partner && partner.isAlive) {
+        get().pushToJournal(`💔 ${partner.name} succombe à son chagrin d'amour pour ${player.name}...`, 'death');
+        get().eliminatePlayer(partnerId, 'heartbreak');
+      }
+    }
+
+    // Les Deux Sœurs — lien de sang
+    if (player.roleId === 'soeurs') {
+      const sister = get().players.find(p => p.roleId === 'soeurs' && p.id !== playerId && p.isAlive);
+      if (sister) {
+        get().pushToJournal(`👯 ${sister.name} ne peut survivre sans sa sœur ${player.name}... Elle s'effondre à son tour.`, 'death');
+        get().eliminatePlayer(sister.id, 'sister-bond');
       }
     }
 

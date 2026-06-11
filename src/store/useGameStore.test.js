@@ -137,3 +137,69 @@ describe('checkGameOver — conditions de victoire', () => {
     ).toBeNull()
   })
 })
+
+/* ─── T1.1 — Pipeline unique des morts en chaîne ───────────── */
+describe('eliminatePlayer — morts en chaîne (T1.1)', () => {
+  const alive = (id) => useGameStore.getState().players.find((p) => p.id === id)?.isAlive
+
+  it("le partenaire amoureux meurt de chagrin", () => {
+    setupScenario({
+      players: [
+        makePlayer('a', 'villageois'),
+        makePlayer('b', 'villageois'),
+        makePlayer('w', 'loup-simple'),
+      ],
+      lovers: ['a', 'b'],
+    })
+    useGameStore.getState().eliminatePlayer('a', 'wolves')
+    expect(alive('a')).toBe(false)
+    expect(alive('b')).toBe(false) // mort par chagrin via le pipeline
+  })
+
+  it("la mort en chaîne d'un Capitaine déclenche bien la succession", () => {
+    setupScenario({
+      players: [
+        makePlayer('cap', 'villageois', { isCaptain: true }),
+        makePlayer('b', 'villageois'),
+        makePlayer('c', 'villageois'),
+        makePlayer('w', 'loup-simple'),
+      ],
+      lovers: ['cap', 'b'],
+      captainId: 'cap',
+    })
+    // On tue l'amoureux 'b' : le Capitaine 'cap' meurt de chagrin et doit ouvrir une succession
+    useGameStore.getState().eliminatePlayer('b', 'wolves')
+    expect(alive('cap')).toBe(false)
+    expect(useGameStore.getState().successionPendingForId).toBe('cap')
+  })
+
+  it("la mort d'une Sœur entraîne l'autre", () => {
+    setupScenario({
+      players: [
+        makePlayer('s1', 'soeurs'),
+        makePlayer('s2', 'soeurs'),
+        makePlayer('w', 'loup-simple'),
+      ],
+    })
+    useGameStore.getState().eliminatePlayer('s1', 'vote')
+    expect(alive('s1')).toBe(false)
+    expect(alive('s2')).toBe(false)
+  })
+
+  it("un Ancien mort par chagrin ne déclenche PAS la malédiction (les pouvoirs sont conservés)", () => {
+    setupScenario({
+      players: [
+        makePlayer('anc', 'ancien'),
+        makePlayer('luv', 'villageois'),
+        makePlayer('voy', 'voyante'),
+        makePlayer('w', 'loup-simple'),
+      ],
+      lovers: ['anc', 'luv'],
+      ancienLives: 2,
+    })
+    // 'luv' tué par vote → 'anc' (Ancien) meurt de chagrin → pas de malédiction
+    useGameStore.getState().eliminatePlayer('luv', 'vote')
+    expect(alive('anc')).toBe(false)
+    expect(useGameStore.getState().players.find((p) => p.id === 'voy')?.roleId).toBe('voyante')
+  })
+})
