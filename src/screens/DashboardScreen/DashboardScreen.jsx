@@ -120,7 +120,7 @@ export default function DashboardScreen() {
     nightStepIndex, setNightStepIndex,
     activeNightSteps, setActiveNightSteps,
     winner, charmedIds, setCharmedIds,
-    captainId, setCaptain, transferCaptaincy, successionPendingForId,
+    captainId, setCaptain, transferCaptaincy, pendingInteractions,
     isVoting, setIsVoting, tribunalLocked, setTribunalLocked,
     chevalierContaminatedWolfId, chienLoupSide,
     foxPowerLost, commitFoxAction, undoAction, pastStates,
@@ -135,8 +135,13 @@ export default function DashboardScreen() {
 
   const [nightSelection, setNightSelection] = useState([])
   const [isAiVotingLoading, setIsAiVotingLoading] = useState(false)
-  const [chasseurPendingId, setChasseurPendingId] = useState(null)
-  
+
+  // Résolution interactive en tête de file (succession du Capitaine / tir du Chasseur).
+  // On n'en traite qu'une à la fois — la file garantit l'enchaînement correct.
+  const currentInteraction = pendingInteractions?.[0] ?? null
+  const successionPendingForId = currentInteraction?.type === 'succession' ? currentInteraction.playerId : null
+  const chasseurPendingId = currentInteraction?.type === 'hunter' ? currentInteraction.playerId : null
+
   // ── Étape 1 & 2 : nouveaux states UI/UX ─────────────────────
   const [highlightedIds, setHighlightedIds]       = useState([])      // IDs momentanément mis en lumière
   const [isProcessingAction, setIsProcessingAction] = useState(false) // Debounce global pour les animations
@@ -151,8 +156,6 @@ export default function DashboardScreen() {
   // Modal QA
   const [qaModalPlushId, setQaModalPlushId] = useState(null)
   const [witchIaUsedForThisStep, setWitchIaUsedThisStep] = useState(false) // Usage unique du bouton IA par tour
-
-  const prevPlayersRef = useRef(players)
 
   // ── States pour Renommage, Sauvegarde, Transitions, Modale Sorcière ──
   const [editingPlayerId, setEditingPlayerId] = useState(null)
@@ -296,16 +299,8 @@ export default function DashboardScreen() {
     }
   }, [journal.length])
 
-  // Détection automatique de la mort du Chasseur (Nuit ou Vote)
-  useEffect(() => {
-    const wasHunterAlive = prevPlayersRef.current.find(p => p.roleId === 'chasseur' && p.isAlive);
-    const isHunterDead = players.find(p => p.roleId === 'chasseur' && !p.isAlive);
-
-    if (wasHunterAlive && isHunterDead && !chasseurPendingId) {
-      setChasseurPendingId(isHunterDead.id);
-    }
-    prevPlayersRef.current = players;
-  }, [players, chasseurPendingId]);
+  // La mort du Chasseur est désormais détectée dans le store (eliminatePlayer empile
+  // une interaction 'hunter' dans pendingInteractions), quelle qu'en soit la cause.
 
   // Détection du grognement de l'ours au réveil
   useEffect(() => {
@@ -333,17 +328,16 @@ export default function DashboardScreen() {
             // IA Simplifiée : Tire sur un non-loup ou random
             const rnd = targets[Math.floor(Math.random() * targets.length)];
             const rid = rnd.id;
-            
+
             setHighlightedIds([rid]); // Highlight manuel ici
             setTimeout(() => {
                 setHighlightedIds([]);
-                eliminatePlayer(rid, 'hunter');
                 useGameStore.getState().pushToJournal(`🏹 Le Chasseur IA (${hunter.name}) a tiré sur ${rnd.name} !`, 'death');
-                setChasseurPendingId(null);
+                useGameStore.getState().resolveHunterShot(rid);
                 setIsProcessingAction(false);
             }, 2000);
           } else {
-            setChasseurPendingId(null);
+            useGameStore.getState().resolveHunterShot(null);
             setIsProcessingAction(false);
           }
         }, 1500);
@@ -525,13 +519,10 @@ export default function DashboardScreen() {
 
   const handleEliminate = (pid) => {
     useGameStore.getState().saveHistory()
-    const p = players.find(x => x.id === pid)
     eliminatePlayer(pid, 'vote') // Élimination directe/MJ considérée comme 'vote'
     setSelectedId(null)
-    // Si c'est un chasseur vivant => déclencher son pouvoir
-    if (p?.roleId === 'chasseur' && p?.isAlive) {
-      setChasseurPendingId(pid)
-    }
+    // Le pouvoir du Chasseur (s'il s'agit de lui) est déclenché par le store, qui
+    // empile une interaction 'hunter' dans pendingInteractions.
   }
 
   const handleReset = () => { useGameStore.getState().resetGame(); navigate('/') }
@@ -1947,15 +1938,14 @@ export default function DashboardScreen() {
                       style={{justifyContent:'flex-start', gap: 12}}
                       onClick={() => {
                         useGameStore.getState().saveHistory();
-                        eliminatePlayer(p.id, 'hunter');
                         useGameStore.getState().pushToJournal(`🔫 Le Chasseur tire et emporte ${p.name} dans la mort !`, 'death');
-                        setChasseurPendingId(null);
+                        useGameStore.getState().resolveHunterShot(p.id);
                       }}>
                       {ROLE_BY_ID[p.roleId]?.icon} {p.name}
                     </button>
                   ))}
                 </div>
-                <button className="header-btn" style={{alignSelf:'center', opacity:0.6}} onClick={() => setChasseurPendingId(null)}>
+                <button className="header-btn" style={{alignSelf:'center', opacity:0.6}} onClick={() => useGameStore.getState().resolveHunterShot(null)}>
                   (Passer — le Chasseur rate sa cible)
                 </button>
               </div>

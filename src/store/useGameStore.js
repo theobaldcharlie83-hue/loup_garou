@@ -44,6 +44,10 @@ export const DEFAULT_HUMAN_NAMES = [
   'Timéo', 'Lise', 'Léonie', 'Papa', 'Maman'
 ]
 
+/* ─── UTILITAIRE : identifiants monotones (évite les collisions de Date.now()) ─ */
+let _uidCounter = 0
+const uid = () => `i${Date.now().toString(36)}-${_uidCounter++}`
+
 /* ─── UTILITAIRE : Fisher-Yates shuffle ────────────────────── */
 function shuffle(arr) {
   const a = [...arr]
@@ -123,7 +127,12 @@ const initialState = {
   wildChildModelId: null,
   chienLoupSide: null, // 'village' | 'loup'
   captainId: null,
-  successionPendingForId: null, // ID du capitaine mort en attente de successeur
+  // File des résolutions interactives en attente (sérialisées, traitées une à une) :
+  //   { id, type: 'succession' | 'hunter', playerId }
+  // 'succession' = capitaine mort devant nommer un successeur ; 'hunter' = Chasseur
+  // mort devant tirer. Une file (et non un scalaire) permet d'enchaîner correctement
+  // plusieurs résolutions (ex. capitaine → successeur abattu par le Chasseur → nouvelle succession).
+  pendingInteractions: [],
   
   // ── Historique global pour l'annulation
   pastStates: [],
@@ -342,7 +351,7 @@ export const useGameStore = create((set, get) => ({
       wildChildModelId: null, // BUG-03 fix: doit rester null jusqu'au choix explicite la Nuit 1
       chienLoupSide: null,
       captainId: null,
-      successionPendingForId: null,
+      pendingInteractions: [],
 
       dayVotes: {},
       isVoting: false,
@@ -397,11 +406,32 @@ export const useGameStore = create((set, get) => ({
      players: s.players.map(p => ({ ...p, isCaptain: p.id === playerId }))
   })),
 
-  transferCaptaincy: (newCaptainId) => set((s) => ({
-     captainId: newCaptainId,
-     successionPendingForId: null,
-     players: s.players.map(p => ({ ...p, isCaptain: p.id === newCaptainId }))
+  transferCaptaincy: (newCaptainId) => {
+     set((s) => ({
+        captainId: newCaptainId,
+        players: s.players.map(p => ({ ...p, isCaptain: p.id === newCaptainId }))
+     }));
+     // La succession en tête de file est résolue : on la retire (et on évalue la
+     // victoire si plus rien n'est en attente).
+     get().resolvePendingInteraction();
+  },
+
+  /* ── File des résolutions interactives (succession / chasseur) ── */
+  enqueueInteraction: (interaction) => set((s) => ({
+     pendingInteractions: [...s.pendingInteractions, { id: uid(), ...interaction }]
   })),
+
+  // Retire l'interaction en tête de file ; déclenche checkGameOver si la file est vide.
+  resolvePendingInteraction: () => {
+     set((s) => ({ pendingInteractions: s.pendingInteractions.slice(1) }));
+     if (get().pendingInteractions.length === 0) get().checkGameOver();
+  },
+
+  // Résout le tir du Chasseur en tête de file. targetId=null => le Chasseur rate.
+  resolveHunterShot: (targetId) => {
+     if (targetId) get().eliminatePlayer(targetId, 'hunter');
+     get().resolvePendingInteraction();
+  },
 
   triggerAncientCurse: () => {
     set((s) => {
@@ -552,19 +582,13 @@ export const useGameStore = create((set, get) => ({
     if (player.roleId === 'ancien' && ['vote', 'witch-death', 'hunter'].includes(mode)) {
        set({ players: newPlayers, journal: newJournal, condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId });
        get().triggerAncientCurse();
-       get().checkGameOver();
+       // Un Ancien peut être Capitaine : sa mort ouvre alors une succession.
+       if (player.isCaptain) {
+          get().pushToJournal(`🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`, 'event');
+          get().enqueueInteraction({ type: 'succession', playerId });
+       }
+       if (get().pendingInteractions.length === 0) get().checkGameOver();
        return;
-    }
-
-    // --- SUCCESSION DU CAPITAINE ---
-    let successionId = s.successionPendingForId;
-    if (player.isCaptain) {
-      successionId = player.id;
-      newJournal.push({
-        id: Date.now() + 2,
-        text: `🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`,
-        type: 'event'
-      });
     }
 
     // --- MORT DU JOUEUR DE FLÛTE ---
@@ -575,13 +599,23 @@ export const useGameStore = create((set, get) => ({
       activeNightSteps: s.activeNightSteps.filter(st => st.id !== 'joueur-flute' && st.id !== 'joueurs-charmes'),
     } : {};
 
-    set({ 
-      players: newPlayers, 
+    set({
+      players: newPlayers,
       journal: newJournal,
       condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId,
-      successionPendingForId: successionId,
       ...piperPatch
     });
+
+    // --- RÉSOLUTIONS INTERACTIVES DÉCLENCHÉES PAR CETTE MORT (empilées dans l'ordre) ---
+    // Le tir du Chasseur d'abord (il peut changer le plateau), puis la succession du
+    // Capitaine (le successeur est choisi en connaissance du tir).
+    if (player.roleId === 'chasseur') {
+      get().enqueueInteraction({ type: 'hunter', playerId });
+    }
+    if (player.isCaptain) {
+      get().pushToJournal(`🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`, 'event');
+      get().enqueueInteraction({ type: 'succession', playerId });
+    }
 
     // --- LOGIQUE CHEVALIER (Vengeance épée rouillée) ---
     // Se déclenche lors d'une attaque de loups (classique ou Loup Blanc), s'il n'est pas lui-même loup
@@ -636,7 +670,10 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
-    get().checkGameOver();
+    // T1.3 — On n'évalue la victoire que lorsqu'aucune résolution interactive
+    // (succession / tir du Chasseur) n'est en attente : sinon un vainqueur pourrait
+    // être figé « par-dessus » une succession encore à régler.
+    if (get().pendingInteractions.length === 0) get().checkGameOver();
   },
 
   /* ── Actions de Nuit & Pouvoirs ─────────────────────────────── */

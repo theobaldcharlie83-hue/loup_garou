@@ -170,7 +170,8 @@ describe('eliminatePlayer — morts en chaîne (T1.1)', () => {
     // On tue l'amoureux 'b' : le Capitaine 'cap' meurt de chagrin et doit ouvrir une succession
     useGameStore.getState().eliminatePlayer('b', 'wolves')
     expect(alive('cap')).toBe(false)
-    expect(useGameStore.getState().successionPendingForId).toBe('cap')
+    const queue = useGameStore.getState().pendingInteractions
+    expect(queue.some((i) => i.type === 'succession' && i.playerId === 'cap')).toBe(true)
   })
 
   it("la mort d'une Sœur entraîne l'autre", () => {
@@ -184,6 +185,47 @@ describe('eliminatePlayer — morts en chaîne (T1.1)', () => {
     useGameStore.getState().eliminatePlayer('s1', 'vote')
     expect(alive('s1')).toBe(false)
     expect(alive('s2')).toBe(false)
+  })
+
+  /* T1.6c — Non-régression du bug réel signalé :
+     Capitaine dévoré la nuit + Chasseur (amoureux du Capitaine) mort de chagrin,
+     puis le Chasseur abat le nouveau Capitaine → une 2ᵉ succession doit pouvoir
+     se faire. Auparavant l'enchaînement se bloquait. */
+  it("enchaîne succession → tir du Chasseur → nouvelle succession sans blocage", () => {
+    const store = () => useGameStore.getState()
+    setupScenario({
+      players: [
+        makePlayer('cap', 'villageois', { isCaptain: true }),
+        makePlayer('hunter', 'chasseur'),
+        makePlayer('x', 'villageois'),
+        makePlayer('y', 'villageois'),
+        makePlayer('w', 'loup-simple'),
+      ],
+      lovers: ['cap', 'hunter'],
+      captainId: 'cap',
+    })
+
+    // Nuit : les loups dévorent le Capitaine → le Chasseur (amoureux) meurt de chagrin.
+    store().eliminatePlayer('cap', 'wolves')
+
+    let queue = store().pendingInteractions
+    expect(queue.map((i) => i.type)).toEqual(['succession', 'hunter'])
+    expect(store().winner).toBeNull() // pas de victoire tant que la file n'est pas vidée
+
+    // 1) Succession du Capitaine défunt → 'x' devient Capitaine.
+    store().transferCaptaincy('x')
+    expect(store().captainId).toBe('x')
+    expect(store().pendingInteractions.map((i) => i.type)).toEqual(['hunter'])
+
+    // 2) Le Chasseur tire sur le nouveau Capitaine 'x' → ouvre une 2ᵉ succession.
+    store().resolveHunterShot('x')
+    expect(alive('x')).toBe(false)
+    expect(store().pendingInteractions.map((i) => i.type)).toEqual(['succession'])
+
+    // 3) La 2ᵉ succession aboutit → 'y' devient Capitaine, la file est vide.
+    store().transferCaptaincy('y')
+    expect(store().captainId).toBe('y')
+    expect(store().pendingInteractions).toHaveLength(0)
   })
 
   it("un Ancien mort par chagrin ne déclenche PAS la malédiction (les pouvoirs sont conservés)", () => {
