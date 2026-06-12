@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
 import { computeVoteTally } from '../../services/voteTally'
+import { witchPotionProbability, ENDGAME_CAPTAIN_THRESHOLD } from '../../services/aiConfig'
 import RulesModal from '../../components/RulesModal/RulesModal'
 import './DashboardScreen.css'
 
@@ -538,7 +539,7 @@ export default function DashboardScreen() {
     const witch = players.find(p => p.roleId === 'sorciere' && p.isAlive)
     if (!witch) return
 
-    const potionProb = 0.1 + (dayNumber * 0.1) // N1: 20%, N2: 30%, N3: 40%...
+    const potionProb = witchPotionProbability(dayNumber)
 
     let suggestedLife = false
     let suggestedDeathTarget = ''
@@ -1306,7 +1307,7 @@ export default function DashboardScreen() {
                           let target = valids[Math.floor(Math.random() * valids.length)];
                           
                           // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
-                          if (alive.length <= 4 && captainId) {
+                          if (alive.length <= ENDGAME_CAPTAIN_THRESHOLD && captainId) {
                             const cap = valids.find(v => v.id === captainId);
                             if (cap) {
                               const partnerId = lovers.find(id => id !== captainId);
@@ -1320,7 +1321,7 @@ export default function DashboardScreen() {
                           setNightSelection([target.id]);
                           triggerHighlight([target.id]);
                         }
-                    }}>🎲 Loups IA {alive.length <= 4 ? '(Stratégie Capitaine)' : '(Victime Aléatoire)'}</button>
+                    }}>🎲 Loups IA {alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? '(Stratégie Capitaine)' : '(Victime Aléatoire)'}</button>
                   )}
 
                   {/* ── Grand-Méchant-Loup IA ── */}
@@ -1331,7 +1332,7 @@ export default function DashboardScreen() {
                           let target = valids[Math.floor(Math.random() * valids.length)];
 
                           // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
-                          if (alive.length <= 4 && captainId) {
+                          if (alive.length <= ENDGAME_CAPTAIN_THRESHOLD && captainId) {
                             const cap = valids.find(v => v.id === captainId);
                             if (cap) {
                                const partnerId = lovers.find(id => id !== captainId);
@@ -1345,7 +1346,7 @@ export default function DashboardScreen() {
                           setNightSelection([target.id]);
                           triggerHighlight([target.id]);
                         }
-                    }}>🎲 Grand-Méchant-Loup IA {alive.length <= 4 ? '(Stratégie Capitaine)' : ''}</button>
+                    }}>🎲 Grand-Méchant-Loup IA {alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? '(Stratégie Capitaine)' : ''}</button>
                   )}
 
                   {/* ── Infect Père IA ── */}
@@ -1362,7 +1363,7 @@ export default function DashboardScreen() {
                           let target = valids[Math.floor(Math.random() * valids.length)];
 
                           // Stratégie Fin de Partie : Cibler le Capitaine si alive <= 4
-                          if (alive.length <= 4 && captainId) {
+                          if (alive.length <= ENDGAME_CAPTAIN_THRESHOLD && captainId) {
                             const cap = valids.find(v => v.id === captainId);
                             if (cap) {
                               const partnerId = lovers.find(id => id !== captainId);
@@ -1372,7 +1373,7 @@ export default function DashboardScreen() {
                             }
                           }
 
-                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir${alive.length <= 4 ? ' stratégiquement sur le Capitaine' : ''}.`);
+                          useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir${alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? ' stratégiquement sur le Capitaine' : ''}.`);
                           commitInfection(target.id);
                           setNightSelection([target.id]);
                           triggerHighlight([target.id]);
@@ -1380,7 +1381,7 @@ export default function DashboardScreen() {
                           useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père ne trouve aucune cible valide à infecter.`);
                           advanceNightPhase();
                         }
-                    }}>🎲 Infect Père IA {alive.length <= 4 ? '(Stratégie Capitaine)' : '(Dès que possible)'}</button>
+                    }}>🎲 Infect Père IA {alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? '(Stratégie Capitaine)' : '(Dès que possible)'}</button>
                   )}
 
                   {/* ── Loup Blanc IA ── */}
@@ -1421,7 +1422,7 @@ export default function DashboardScreen() {
                       onClick={() => {
                         setWitchIaUsedThisStep(true); // Verrouillage immédiat
                         const witch = players.find(p => p.roleId === 'sorciere' && p.isAlive);
-                        const potionProb = 0.1 + (dayNumber * 0.1); // N1: 20%, N2: 30%, N3: 40%...
+                        const potionProb = witchPotionProbability(dayNumber);
 
                         // 1. Potion de Vie
                         if(witchPotions.life && nightActions.wolvesVictim) {
