@@ -1,4 +1,4 @@
-import { ROLE_BY_ID } from '../store/useGameStore';
+import { ROLE_BY_ID, getPlayerTeam } from '../store/useGameStore';
 
 /**
  * Moteur décisionnel matriciel (Scoring System) des Peluches PNJ
@@ -9,26 +9,18 @@ import { ROLE_BY_ID } from '../store/useGameStore';
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
 export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
-  const { 
-    lovers = [], 
-    seenBySeer = [], 
-    // BUG-09 fix: le store utilise 'wildChildModelId', pas 'wildChildModel'
+  const {
+    lovers = [],
+    seenBySeer = [],
     charmedIds: fluteCharmed = [],
-    wildChildModelId: wildChildModel = null, // alias correct
-    chienLoupSide = null,
+    wildChildModelId: wildChildModel = null,
     witchSavedPlayerIds = []
   } = storeState;
 
-  const getTeam = (p) => {
-     if (p.isInfected) return 'loup';
-     if (p.roleId === 'loup-blanc') return 'loup';
-     if (p.roleId === 'chien-loup' && chienLoupSide) return chienLoupSide;
-     if (p.roleId === 'enfant-sauvage' && wildChildModel) {
-        const model = allPlayers.find(x => x.id === wildChildModel);
-        if (model && !model.isAlive) return 'loup';
-     }
-     return ROLE_BY_ID[p.roleId]?.team || 'village';
-  };
+  // Source unique de vérité pour les camps : on réutilise getPlayerTeam du store
+  // (basé sur le roster complet pour détecter correctement un Enfant Sauvage muté).
+  const rosterForTeams = storeState.players || allPlayers;
+  const getTeam = (p) => getPlayerTeam(p, rosterForTeams, storeState);
 
   const myTeam = lovers.includes(plushie.id) ? 'amoureux' : getTeam(plushie);
   const matrix = {};
@@ -45,6 +37,10 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
      matrix[targetId].breakdown.push({ points, reason });
   };
 
+
+  // Invariants calculés une seule fois (hoisting hors de la boucle des cibles) :
+  // les Montreurs d'Ours ayant grogné (vivants ou morts/révélés).
+  const growlingMontreurs = (storeState.players || []).filter(p => p.roleId === 'montreur-ours' && p.hasBearGrowled);
 
   aliveOthers.forEach(target => {
      const targetTeam = getTeam(target);
@@ -95,10 +91,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          }
      }
 
-     // 5. Montreur d'Ours (Voisins Historiques)
-     // BUG FIX: On utilise storeState.players pour trouver le montreur même s'il est mort (révélé)
-     const growlingMontreurs = storeState.players.filter(p => p.roleId === 'montreur-ours' && p.hasBearGrowled);
-     
+     // 5. Montreur d'Ours (Voisins Historiques) — growlingMontreurs hoisté ci-dessus.
      growlingMontreurs.forEach(m => {
          const isEvaluatorTheMontreur = plushie.id === m.id;
          const suspicionIsPublic = !m.isAlive;
