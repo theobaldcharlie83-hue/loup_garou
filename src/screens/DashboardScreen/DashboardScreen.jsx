@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
 import { computeVoteTally } from '../../services/voteTally'
@@ -36,7 +37,58 @@ export default function DashboardScreen() {
     foxPowerLost, commitFoxAction, undoAction, pastStates,
     renamePlayer, saveGameToLocalStorage,
     corbeauTargetId, condemnedPlayerId, qaScoringData
-  } = useGameStore()
+  } = useGameStore(useShallow((s) => ({
+    players: s.players,
+    phase: s.phase,
+    dayNumber: s.dayNumber,
+    journal: s.journal,
+    witchPotions: s.witchPotions,
+    eliminatePlayer: s.eliminatePlayer,
+    setPhase: s.setPhase,
+    lovers: s.lovers,
+    commitLovers: s.commitLovers,
+    nightActions: s.nightActions,
+    commitWolvesVictim: s.commitWolvesVictim,
+    commitSeerObservation: s.commitSeerObservation,
+    commitWitchLife: s.commitWitchLife,
+    commitWitchDeath: s.commitWitchDeath,
+    commitWildChildModel: s.commitWildChildModel,
+    commitGrandMechantVictim: s.commitGrandMechantVictim,
+    commitWhiteWolfVictim: s.commitWhiteWolfVictim,
+    wakeUpVillage: s.wakeUpVillage,
+    infectUsed: s.infectUsed,
+    commitInfection: s.commitInfection,
+    seenBySeer: s.seenBySeer,
+    ancienLives: s.ancienLives,
+    wildChildModelId: s.wildChildModelId,
+    dayVotes: s.dayVotes,
+    nightStepIndex: s.nightStepIndex,
+    setNightStepIndex: s.setNightStepIndex,
+    activeNightSteps: s.activeNightSteps,
+    setActiveNightSteps: s.setActiveNightSteps,
+    winner: s.winner,
+    charmedIds: s.charmedIds,
+    setCharmedIds: s.setCharmedIds,
+    captainId: s.captainId,
+    setCaptain: s.setCaptain,
+    transferCaptaincy: s.transferCaptaincy,
+    pendingInteractions: s.pendingInteractions,
+    isVoting: s.isVoting,
+    setIsVoting: s.setIsVoting,
+    tribunalLocked: s.tribunalLocked,
+    setTribunalLocked: s.setTribunalLocked,
+    chevalierContaminatedWolfId: s.chevalierContaminatedWolfId,
+    chienLoupSide: s.chienLoupSide,
+    foxPowerLost: s.foxPowerLost,
+    commitFoxAction: s.commitFoxAction,
+    undoAction: s.undoAction,
+    pastStates: s.pastStates,
+    renamePlayer: s.renamePlayer,
+    saveGameToLocalStorage: s.saveGameToLocalStorage,
+    corbeauTargetId: s.corbeauTargetId,
+    condemnedPlayerId: s.condemnedPlayerId,
+    qaScoringData: s.qaScoringData,
+  })))
 
   const [selectedId, setSelectedId] = useState(null)
   const circleRef    = useRef(null)
@@ -355,7 +407,7 @@ export default function DashboardScreen() {
   }, [currentNightStepId]);
 
   /* Drag & Drop logic */
-  const { swapPlayers } = useGameStore()
+  const swapPlayers = useGameStore((s) => s.swapPlayers)
   const handleDragStart = (e, pid) => {
     e.dataTransfer.setData('text/plain', pid)
     e.dataTransfer.effectAllowed = 'move'
