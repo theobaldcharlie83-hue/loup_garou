@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
+import { computeVoteTally } from '../../services/voteTally'
 import RulesModal from '../../components/RulesModal/RulesModal'
 import './DashboardScreen.css'
 
@@ -1657,6 +1658,9 @@ export default function DashboardScreen() {
                           return (
                             <li key={voterId} style={{display:'flex', alignItems:'center', gap: 5}}>
                               {v?.name} {t ? `élimine ${t.name}` : `ne vote pas`}
+                              {voterId === captainId && t && (
+                                <span title="Voix du Capitaine (×2)" style={{color:'#ffd700', fontWeight:'bold', fontSize:'0.8rem'}}>🎖️ ×2</span>
+                              )}
                               {v?.isPlush && qaScoringData[voterId] && (
                                  <button style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.1rem'}} onClick={() => setQaModalPlushId(v.id)} title="Audit de vote">📊</button>
                               )}
@@ -1666,35 +1670,10 @@ export default function DashboardScreen() {
                      </ul>
 
                      {(() => {
-                        const tally = {};
-                        // Initialisation avec les voix du Corbeau
-                        if (corbeauTargetId) {
-                           const targetId = corbeauTargetId;
-                           tally[targetId] = (tally[targetId] || 0) + 2;
-                        }
-
-                        Object.entries(dayVotes).forEach(([, targetId]) => {
-                           if (targetId) {
-                              const weight = 1; // Tous les votes valent 1 au départ
-                              tally[targetId] = (tally[targetId] || 0) + weight;
-                           }
-                        });
-                        let max = 0, victims = [];
-                        Object.entries(tally).forEach(([id, count]) => {
-                           if (count > max) { max = count; victims = [id]; }
-                           else if (count === max) { victims.push(id); }
-                        });
-
-                        // Règle du Capitaine : Son vote compte double SEULEMENT en cas d'égalité.
-                        // Cela revient à dire que s'il a voté pour l'un des ex-aequo, c'est celui-ci qui est choisi.
-                        let settledByCaptain = false;
-                        if (victims.length > 1 && captainId) {
-                           const captainVote = dayVotes[captainId];
-                           if (captainVote && victims.includes(captainVote)) {
-                              victims = [captainVote];
-                              settledByCaptain = true;
-                           }
-                        }
+                        // Décompte pur : Capitaine = 2 voix, Corbeau = +2 sur sa cible.
+                        // En cas d'égalité, le Capitaine tranche manuellement (UI ci-dessous),
+                        // sans cumuler à nouveau son influence.
+                        const { max, victims } = computeVoteTally(dayVotes, { captainId, corbeauTargetId });
 
                         const everyoneVoted = Object.keys(dayVotes).length === alive.length;
 
@@ -1717,7 +1696,6 @@ export default function DashboardScreen() {
                               <>
                                 <p>
                                   <strong>{players.find(p=>p.id===victims[0])?.name}</strong> est condamné(e) avec {max} voix.
-                                  {settledByCaptain && <span style={{display: 'block', fontSize: '0.8rem', color: '#ffd700', marginTop: 4}}>🎖️ Tranché par le vote du Capitaine</span>}
                                 </p>
                                 <button className="header-btn" style={{background: '#ff4d4d', color: '#fff', marginTop: 10}} onClick={() => {
                                    useGameStore.getState().saveHistory();
