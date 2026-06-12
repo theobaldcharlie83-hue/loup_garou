@@ -1957,7 +1957,6 @@ export default function DashboardScreen() {
                  {winner === 'loups' && '🐺'}
                  {winner === 'joueur-flute' && '🎶'}
                  {winner === 'loup-blanc' && '⚪'}
-                 {winner === 'ange' && '😇'}
                  {winner === 'amoureux' && '💖'}
                  {winner === 'aucun' && '💀'}
               </div>
@@ -1966,7 +1965,6 @@ export default function DashboardScreen() {
                  {winner === 'loups' && 'Les Loups-Garous triomphent !'}
                  {winner === 'joueur-flute' && 'Le Joueur de Flûte a envouté tout le monde !'}
                  {winner === 'loup-blanc' && 'Le Loup Blanc est le seul survivant !'}
-                 {winner === 'ange' && 'L\'Ange a réussi son martyr !'}
                  {winner === 'amoureux' && 'L\'Amour est plus fort que tout !'}
                  {winner === 'aucun' && 'Tout le monde est mort... Match nul !'}
               </h1>
