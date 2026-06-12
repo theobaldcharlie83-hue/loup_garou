@@ -38,6 +38,10 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
   };
 
 
+  // Invariants calculés une seule fois (hoisting hors de la boucle des cibles) :
+  // les Montreurs d'Ours ayant grogné (vivants ou morts/révélés).
+  const growlingMontreurs = (storeState.players || []).filter(p => p.roleId === 'montreur-ours' && p.hasBearGrowled);
+
   aliveOthers.forEach(target => {
      const targetTeam = getTeam(target);
 
@@ -87,10 +91,7 @@ export function calculatePlushieVoteScores(plushie, allPlayers, storeState) {
          }
      }
 
-     // 5. Montreur d'Ours (Voisins Historiques)
-     // BUG FIX: On utilise storeState.players pour trouver le montreur même s'il est mort (révélé)
-     const growlingMontreurs = storeState.players.filter(p => p.roleId === 'montreur-ours' && p.hasBearGrowled);
-     
+     // 5. Montreur d'Ours (Voisins Historiques) — growlingMontreurs hoisté ci-dessus.
      growlingMontreurs.forEach(m => {
          const isEvaluatorTheMontreur = plushie.id === m.id;
          const suspicionIsPublic = !m.isAlive;

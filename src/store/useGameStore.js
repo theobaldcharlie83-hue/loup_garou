@@ -331,7 +331,7 @@ export const useGameStore = create((set, get) => ({
       phase:    'preparation',
       dayNumber: 0,
       journal: [{
-        id:        Date.now(),
+        id:        uid(),
         timestamp: new Date(),
         text:      "Le village va bientôt s'endormir. Vérifiez et organisez les rôles !",
         type:      'narration',
@@ -446,7 +446,7 @@ export const useGameStore = create((set, get) => ({
         players: newPlayers,
         journal: [
           ...s.journal,
-          { id: Date.now(), timestamp: new Date(), text: "⚡ La Malédiction de l'Ancien a frappé ! Tous les villageois spéciaux perdent leurs pouvoirs.", type: 'event' }
+          { id: uid(), timestamp: new Date(), text: "⚡ La Malédiction de l'Ancien a frappé ! Tous les villageois spéciaux perdent leurs pouvoirs.", type: 'event' }
         ]
       };
     });
@@ -563,7 +563,7 @@ export const useGameStore = create((set, get) => ({
          ancienLives: s.ancienLives - 1,
          journal: [
            ...s.journal,
-           { id: Date.now(), timestamp: new Date(), text: `🧙 L'Ancien (${player.name}) survit à l'attaque des loups ! (🛡️ 1 vie restante)`, type: 'event' }
+           { id: uid(), timestamp: new Date(), text: `🧙 L'Ancien (${player.name}) survit à l'attaque des loups ! (🛡️ 1 vie restante)`, type: 'event' }
          ]
        });
        return;
@@ -572,7 +572,7 @@ export const useGameStore = create((set, get) => ({
     let newPlayers = s.players.map(p => p.id === playerId ? { ...p, isAlive: false, deathCause: mode } : p);
     let newJournal = [
       ...s.journal,
-      { id: Date.now(), timestamp: new Date(), text: `${player.name} (${ROLE_BY_ID[player.roleId]?.name}) a été éliminé(e).`, type: 'death' }
+      { id: uid(), timestamp: new Date(), text: `${player.name} (${ROLE_BY_ID[player.roleId]?.name}) a été éliminé(e).`, type: 'death' }
     ];
 
     // --- MALÉDICTION DE L'ANCIEN ---
@@ -640,7 +640,7 @@ export const useGameStore = create((set, get) => ({
           chevalierContaminationDay: s.dayNumber,
           journal: [
             ...get().journal,
-            { id: Date.now() + 10, timestamp: new Date(), text: `⚔️ Le Chevalier a blessé l'un de ses agresseurs avec son épée rouillée avant de sombrer...`, type: 'event' }
+            { id: uid(), timestamp: new Date(), text: `⚔️ Le Chevalier a blessé l'un de ses agresseurs avec son épée rouillée avant de sombrer...`, type: 'event' }
           ]
         });
       }
@@ -681,7 +681,7 @@ export const useGameStore = create((set, get) => ({
     set((s) => ({ nightActions: { ...s.nightActions, [key]: val } })),
 
   pushToJournal: (text, type = 'event') => set((s) => ({
-    journal: [...s.journal, { id: Date.now() + Math.random(), timestamp: new Date(), text, type }]
+    journal: [...s.journal, { id: uid(), timestamp: new Date(), text, type }]
   })),
 
   commitSeerObservation: (playerId) => set((s) => {
@@ -727,7 +727,7 @@ export const useGameStore = create((set, get) => ({
         infectUsed: true,
         journal: [
           ...s.journal,
-          { id: Date.now(), timestamp: new Date(), text: `☣️ L'Infect Père tente d'infecter ${p.name}... mais l'Ancien est immunisé ! Le pouvoir est perdu.`, type: 'event' }
+          { id: uid(), timestamp: new Date(), text: `☣️ L'Infect Père tente d'infecter ${p.name}... mais l'Ancien est immunisé ! Le pouvoir est perdu.`, type: 'event' }
         ]
       }
     }
@@ -820,7 +820,7 @@ export const useGameStore = create((set, get) => ({
 
       // Le montreur grogne si un voisin est loup, OU s'il est lui-même devenu un loup (infecté)
       if (isPlayerWolf(left, updatedState.players, updatedState) || isPlayerWolf(right, updatedState.players, updatedState) || isPlayerWolf(montreur, updatedState.players, updatedState)) {
-        updatedState.journal.push({ id: Date.now() + 5, text: `🐻 L'ours du Montreur grogne !`, type: 'event' });
+        updatedState.journal.push({ id: uid(), text: `🐻 L'ours du Montreur grogne !`, type: 'event' });
         
         // On marque le montreur comme grognant ET on marque les voisins historiques comme suspects
         updatedState.players = updatedState.players.map(p => {
@@ -832,7 +832,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     const toKillMessages = toKill.map(k => ({
-      id: Date.now() + Math.random(),
+      id: uid(),
       timestamp: new Date(),
       text: `${updatedState.players.find(p => p.id === k.id)?.name} a été éliminé(e) durant la nuit.`,
       type: 'death'
@@ -849,7 +849,7 @@ export const useGameStore = create((set, get) => ({
 
       journal: [
         ...updatedState.journal,
-        { id: Date.now(), text: `Jour ${updatedState.dayNumber} : Le village se réveille.`, type: 'phase' },
+        { id: uid(), text: `Jour ${updatedState.dayNumber} : Le village se réveille.`, type: 'phase' },
         ...toKillMessages
       ]
     })
@@ -896,7 +896,7 @@ export const useGameStore = create((set, get) => ({
              nightActions: {},
              nightStepIndex: -1,
              activeNightSteps: [],
-             journal: [...s.journal, { id: Date.now(), timestamp: new Date(), text: `Nuit 1 — Le village s'endort…`, type: 'phase' }]
+             journal: [...s.journal, { id: uid(), timestamp: new Date(), text: `Nuit 1 — Le village s'endort…`, type: 'phase' }]
            }
         }
 
@@ -931,7 +931,7 @@ export const useGameStore = create((set, get) => ({
           chevalierDeadWolfRevealId: revealId,
           journal: [
              ...s.journal, 
-             { id: Date.now(), timestamp: new Date(), text: `Nuit ${nextDay} — Le village s'endort…`, type: 'phase' }
+             { id: uid(), timestamp: new Date(), text: `Nuit ${nextDay} — Le village s'endort…`, type: 'phase' }
           ]
         }
       }
@@ -945,7 +945,7 @@ export const useGameStore = create((set, get) => ({
     set((s) => ({
       journal: [
         ...s.journal,
-        { id: Date.now(), timestamp: new Date(), text, type },
+        { id: uid(), timestamp: new Date(), text, type },
       ],
     })),
 
