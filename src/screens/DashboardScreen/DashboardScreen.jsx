@@ -165,6 +165,7 @@ export default function DashboardScreen() {
   const editNameValueRef = useRef('') // ref pour éviter les closures stales dans onBlur
   const renameInputRef = useRef(null)  // ref pour forcer le focus sur l'input de renommage
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [transitionPhase, setTransitionPhase] = useState('')
   const [isTransitionActive, setIsTransitionActive] = useState(false)
   const [witchUseLife, setWitchUseLife] = useState(false)
@@ -860,7 +861,7 @@ export default function DashboardScreen() {
           >
             💾 Sauvegarder
           </button>
-          <button id="btn-reset" className="header-btn" onClick={handleReset}>
+          <button id="btn-reset" className="header-btn" onClick={() => setShowResetConfirm(true)}>
             ↩ Reconfigurer
           </button>
         </div>
@@ -2276,6 +2277,47 @@ export default function DashboardScreen() {
                 }}
               >
                 Retourner à l'accueil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODALE : CONFIRMATION DE RECONFIGURATION ────────── */}
+      {showResetConfirm && (
+        <div className="grimoire-modal-overlay" onClick={() => setShowResetConfirm(false)}>
+          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+            <div className="grimoire-modal-icon">⚠️</div>
+            <h2>Quitter la partie en cours ?</h2>
+            <p>
+              Reconfigurer va <strong>effacer la partie en cours</strong> et revenir à l'écran de préparation.<br/>
+              Pensez à sauvegarder si vous souhaitez la reprendre plus tard.
+            </p>
+            <div className="grimoire-modal-actions">
+              <button
+                className="grimoire-modal-btn confirm"
+                onClick={() => {
+                  saveGameToLocalStorage();
+                  setShowResetConfirm(false);
+                  handleReset();
+                }}
+              >
+                💾 Sauvegarder puis quitter
+              </button>
+              <button
+                className="grimoire-modal-btn cancel"
+                onClick={() => {
+                  setShowResetConfirm(false);
+                  handleReset();
+                }}
+              >
+                Quitter sans sauvegarder
+              </button>
+              <button
+                className="grimoire-modal-btn"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Annuler
               </button>
             </div>
           </div>
