@@ -246,6 +246,42 @@ describe('eliminatePlayer — morts en chaîne (T1.1)', () => {
   })
 })
 
+/* ─── T4.1 / T4.2 — Sauvegarde : versioning, fusion, pastStates ─ */
+describe('save / load (T4.1, T4.2)', () => {
+  beforeEach(() => {
+    const store = {}
+    globalThis.localStorage = {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = v },
+      removeItem: (k) => { delete store[k] },
+    }
+  })
+
+  it("la sauvegarde inclut un schemaVersion et exclut pastStates", () => {
+    setupScenario({
+      players: [makePlayer('a', 'villageois')],
+      dayNumber: 2,
+      pastStates: [{ foo: 'bar' }],
+    })
+    useGameStore.getState().saveGameToLocalStorage()
+    const saved = JSON.parse(globalThis.localStorage.getItem('loup_garou_saved_game'))
+    expect(saved.schemaVersion).toBe(1)
+    expect('pastStates' in saved).toBe(false)
+  })
+
+  it("le chargement fusionne avec l'état initial (champs manquants → valeurs par défaut) et vide pastStates", () => {
+    // Sauvegarde « ancienne » sans pendingInteractions ni pastStates.
+    const legacy = { players: [makePlayer('a', 'villageois')], dayNumber: 3 }
+    globalThis.localStorage.setItem('loup_garou_saved_game', JSON.stringify(legacy))
+
+    const ok = useGameStore.getState().loadGameFromLocalStorage()
+    expect(ok).toBe(true)
+    expect(useGameStore.getState().dayNumber).toBe(3)
+    expect(useGameStore.getState().pendingInteractions).toEqual([]) // défaut d'initialState
+    expect(useGameStore.getState().pastStates).toEqual([])
+  })
+})
+
 /* ─── T2.2 — Ancien soigné par la Sorcière ─────────────────── */
 describe('commitWitchLife — Ancien (T2.2)', () => {
   const alive = (id) => useGameStore.getState().players.find((p) => p.id === id)?.isAlive

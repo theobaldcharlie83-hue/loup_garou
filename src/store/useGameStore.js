@@ -48,6 +48,9 @@ export const DEFAULT_HUMAN_NAMES = [
 let _uidCounter = 0
 const uid = () => `i${Date.now().toString(36)}-${_uidCounter++}`
 
+/* Version du schéma des sauvegardes : à incrémenter en cas de changement incompatible. */
+const SAVE_SCHEMA_VERSION = 1
+
 /* ─── UTILITAIRE : Fisher-Yates shuffle ────────────────────── */
 function shuffle(arr) {
   const a = [...arr]
@@ -958,9 +961,11 @@ export const useGameStore = create((set, get) => ({
   /* ── Sauvegarde ─────────────────────────────────────────────── */
   saveGameToLocalStorage: () => {
     const state = get();
-    const serializableState = {};
+    const serializableState = { schemaVersion: SAVE_SCHEMA_VERSION };
     Object.keys(state).forEach(key => {
-      if (typeof state[key] !== 'function') {
+      // Exclure les fonctions et l'historique d'annulation (pastStates) : il peut peser
+      // lourd (jusqu'à 20 instantanés complets) et n'a pas vocation à être persisté.
+      if (typeof state[key] !== 'function' && key !== 'pastStates') {
         serializableState[key] = state[key];
       }
     });
@@ -1014,37 +1019,30 @@ export const useGameStore = create((set, get) => ({
   },
 
   loadGameFromLocalStorage: (id = null) => {
+    // Réhydrate une sauvegarde : fusionne avec initialState (les champs ajoutés depuis
+    // obtiennent leur valeur par défaut), réinitialise pastStates et restaure les dates.
+    const hydrate = (parsed, extra = {}) => {
+      const journal = Array.isArray(parsed.journal)
+        ? parsed.journal.map(entry => ({
+            ...entry,
+            timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+          }))
+        : [];
+      set({ ...initialState, ...parsed, journal, pastStates: [], ...extra });
+      return true;
+    };
+
     try {
       if (id) {
         const savesStr = localStorage.getItem('loup_garou_saved_games');
         if (savesStr) {
           const saves = JSON.parse(savesStr);
           const save = saves.find(s => s.id === id);
-          if (save) {
-            const parsed = save.state;
-            if (parsed.journal) {
-              parsed.journal = parsed.journal.map(entry => ({
-                ...entry,
-                timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
-              }));
-            }
-            set({ ...parsed, activeSaveId: id });
-            return true;
-          }
+          if (save) return hydrate(save.state, { activeSaveId: id });
         }
       } else {
         const saved = localStorage.getItem('loup_garou_saved_game');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.journal) {
-            parsed.journal = parsed.journal.map(entry => ({
-              ...entry,
-              timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
-            }));
-          }
-          set(parsed);
-          return true;
-        }
+        if (saved) return hydrate(JSON.parse(saved));
       }
     } catch (e) {
       console.error("Failed to load game from localStorage:", e);
