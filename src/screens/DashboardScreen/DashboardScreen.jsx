@@ -11,6 +11,7 @@ import './DashboardScreen.css'
 import { TEAM_CLASS, PHASE_META, NIGHT_ORDER, getGuidanceMessage } from './dashboardConstants'
 import VictoryOverlay from './components/VictoryOverlay'
 import PhaseTransitionOverlay from './components/PhaseTransitionOverlay'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 
 export default function DashboardScreen() {
@@ -127,6 +128,14 @@ export default function DashboardScreen() {
   const renameInputRef = useRef(null)  // ref pour forcer le focus sur l'input de renommage
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+
+  // Pièges de focus (accessibilité) pour les dialogues modaux.
+  const resetModalRef = useRef(null)
+  const saveModalRef = useRef(null)
+  const captainModalRef = useRef(null)
+  useFocusTrap(resetModalRef, showResetConfirm, () => setShowResetConfirm(false))
+  useFocusTrap(saveModalRef, isSaveModalOpen, () => setIsSaveModalOpen(false))
+  useFocusTrap(captainModalRef, captainModal, () => setCaptainModal(false))
   const [transitionPhase, setTransitionPhase] = useState('')
   const [isTransitionActive, setIsTransitionActive] = useState(false)
   const [witchUseLife, setWitchUseLife] = useState(false)
@@ -370,7 +379,10 @@ export default function DashboardScreen() {
       setNightStepIndex(0)
       setNightSelection([])
     }
-  }, [phase, dayNumber, players, nightStepIndex]) // Correct dependency array to avoid stale state issues
+    // Déclenché uniquement au (re)calcul des étapes de nuit ; les setters et invariants
+    // omis sont intentionnels pour éviter de relancer ce calcul à chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, dayNumber, players, nightStepIndex])
 
   // Reset séparé pour le verrou du bouton IA de la sorcière, les animations et debounces
   useEffect(() => {
@@ -1949,7 +1961,7 @@ export default function DashboardScreen() {
       {/* ── MODALE : DÉSIGNER UN CAPITAINE ────────────────── */}
       {captainModal && (
         <div className="grimoire-modal-overlay" onClick={() => setCaptainModal(false)}>
-          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+          <div className="grimoire-modal" ref={captainModalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="grimoire-modal-icon">🎖️</div>
             <h2>Capitaine requis !</h2>
             <p>
@@ -2090,7 +2102,7 @@ export default function DashboardScreen() {
       {/* ── MODALE APRES SAUVEGARDE ────────────────── */}
       {isSaveModalOpen && (
         <div className="grimoire-modal-overlay">
-          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+          <div className="grimoire-modal" ref={saveModalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="grimoire-modal-icon">💾</div>
             <h2>Partie Sauvegardée !</h2>
             <p>
@@ -2121,7 +2133,7 @@ export default function DashboardScreen() {
       {/* ── MODALE : CONFIRMATION DE RECONFIGURATION ────────── */}
       {showResetConfirm && (
         <div className="grimoire-modal-overlay" onClick={() => setShowResetConfirm(false)}>
-          <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+          <div className="grimoire-modal" ref={resetModalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="grimoire-modal-icon">⚠️</div>
             <h2>Quitter la partie en cours ?</h2>
             <p>
