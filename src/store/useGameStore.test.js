@@ -245,3 +245,31 @@ describe('eliminatePlayer — morts en chaîne (T1.1)', () => {
     expect(useGameStore.getState().players.find((p) => p.id === 'voy')?.roleId).toBe('voyante')
   })
 })
+
+/* ─── T2.2 — Ancien soigné par la Sorcière ─────────────────── */
+describe('commitWitchLife — Ancien (T2.2)', () => {
+  const alive = (id) => useGameStore.getState().players.find((p) => p.id === id)?.isAlive
+
+  it("l'Ancien soigné ne récupère qu'une seule vie", () => {
+    setupScenario({
+      players: [makePlayer('anc', 'ancien'), makePlayer('w', 'loup-simple')],
+      ancienLives: 2,
+    })
+    useGameStore.getState().commitWitchLife('anc')
+    expect(useGameStore.getState().ancienLives).toBe(1)
+  })
+
+  it("après avoir été soigné, l'Ancien meurt à la prochaine attaque des loups", () => {
+    setupScenario({
+      players: [
+        makePlayer('anc', 'ancien'),
+        makePlayer('v', 'villageois'),
+        makePlayer('w', 'loup-simple'),
+      ],
+      ancienLives: 2,
+    })
+    useGameStore.getState().commitWitchLife('anc') // ancienLives → 1
+    useGameStore.getState().eliminatePlayer('anc', 'wolves')
+    expect(alive('anc')).toBe(false) // plus de résistance spéciale
+  })
+})

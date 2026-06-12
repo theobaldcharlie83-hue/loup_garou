@@ -702,7 +702,9 @@ export const useGameStore = create((set, get) => ({
       witchPotions: { ...s.witchPotions, life: false },
       witchSavedPlayerIds: [...s.witchSavedPlayerIds, playerId],
       nightActions: { ...s.nightActions, witchHealed: true },
-      ancienLives: isAncien ? 2 : s.ancienLives,
+      // Règle officielle : un Ancien soigné par la Sorcière « récupère une seule vie »
+      // (il perd sa résistance spéciale et meurt à la prochaine attaque de loups).
+      ancienLives: isAncien ? 1 : s.ancienLives,
     }
   }),
 
