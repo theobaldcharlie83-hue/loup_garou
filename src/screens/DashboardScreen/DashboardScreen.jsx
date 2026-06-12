@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_BY_ID, getPlayerTeam, isPlayerWolf } from '../../store/useGameStore'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
 import { computeVoteTally } from '../../services/voteTally'
-import { witchPotionProbability, ENDGAME_CAPTAIN_THRESHOLD } from '../../services/aiConfig'
+import { ENDGAME_CAPTAIN_THRESHOLD } from '../../services/aiConfig'
+import { decideWitchAction } from '../../services/aiStrategies'
 import RulesModal from '../../components/RulesModal/RulesModal'
 import './DashboardScreen.css'
 
@@ -539,55 +540,13 @@ export default function DashboardScreen() {
     const witch = players.find(p => p.roleId === 'sorciere' && p.isAlive)
     if (!witch) return
 
-    const potionProb = witchPotionProbability(dayNumber)
+    const { useLife, deathTargetId } = decideWitchAction({
+      witch, players, alive, storeState: useGameStore.getState(),
+      dayNumber, witchPotions, nightActions,
+    })
 
-    let suggestedLife = false
-    let suggestedDeathTarget = ''
-
-    // 1. Potion de Vie
-    if (witchPotions.life && nightActions.wolvesVictim) {
-      const victim = players.find(p => p.id === nightActions.wolvesVictim)
-      const isSelf = victim?.id === witch.id
-      const isVillageois = ROLE_BY_ID[victim?.roleId]?.team === 'village'
-
-      if (isSelf) {
-        // Sauvetage automatique de soi-même (100% prob)
-        suggestedLife = true
-      } else if (isVillageois && Math.random() < potionProb) {
-        // Sauvetage probabiliste d'un autre villageois
-        suggestedLife = true
-      }
-    }
-
-    // 2. Potion de mort
-    if (witchPotions.death && !nightActions.witchKilled && Math.random() < potionProb) {
-      // Ciblage stratégique : le joueur ayant le score de confiance minimal
-      const storeState = useGameStore.getState()
-      const scores = calculatePlushieVoteScores(witch, alive, storeState)
-
-      let minScore = Infinity
-      let candidates = []
-
-      Object.entries(scores).forEach(([pid, info]) => {
-        if (pid === witch.id) return
-        // EXCLUSION OBLIGATOIRE : La victime des loups de cette nuit
-        if (pid === nightActions.wolvesVictim) return
-
-        if (info.score < minScore) {
-          minScore = info.score
-          candidates = [pid]
-        } else if (info.score === minScore) {
-          candidates.push(pid)
-        }
-      })
-
-      if (candidates.length > 0) {
-        suggestedDeathTarget = candidates[Math.floor(Math.random() * candidates.length)]
-      }
-    }
-
-    setWitchUseLife(suggestedLife)
-    setWitchDeathTarget(suggestedDeathTarget)
+    setWitchUseLife(useLife)
+    setWitchDeathTarget(deathTargetId || '')
     setWitchIaUsedThisStep(true)
   }
 
@@ -1422,52 +1381,17 @@ export default function DashboardScreen() {
                       onClick={() => {
                         setWitchIaUsedThisStep(true); // Verrouillage immédiat
                         const witch = players.find(p => p.roleId === 'sorciere' && p.isAlive);
-                        const potionProb = witchPotionProbability(dayNumber);
-
-                        // 1. Potion de Vie
-                        if(witchPotions.life && nightActions.wolvesVictim) {
-                          const victim = players.find(p => p.id === nightActions.wolvesVictim);
-                          const isSelf = victim?.id === witch.id;
-                          const isVillageois = ROLE_BY_ID[victim?.roleId]?.team === 'village';
-
-                          if (isSelf) {
-                            // Sauvetage automatique de soi-même (100% prob)
-                            commitWitchLife(nightActions.wolvesVictim);
-                            triggerHighlight([nightActions.wolvesVictim]);
-                          } else if (isVillageois && Math.random() < potionProb) {
-                            // Sauvetage probabiliste d'un autre villageois
-                            commitWitchLife(nightActions.wolvesVictim);
-                            triggerHighlight([nightActions.wolvesVictim]);
-                          }
+                        const { useLife, deathTargetId } = decideWitchAction({
+                          witch, players, alive, storeState: useGameStore.getState(),
+                          dayNumber, witchPotions, nightActions,
+                        });
+                        if (useLife) {
+                          commitWitchLife(nightActions.wolvesVictim);
+                          triggerHighlight([nightActions.wolvesVictim]);
                         }
-
-                        // 2. Potion de mort
-                        if(witchPotions.death && !nightActions.witchKilled && Math.random() < potionProb) {
-                          // Ciblage stratégique : le joueur ayant le score de confiance minimal
-                          const storeState = useGameStore.getState();
-                          const scores = calculatePlushieVoteScores(witch, alive, storeState);
-                          
-                          let minScore = Infinity;
-                          let candidates = [];
-
-                          Object.entries(scores).forEach(([pid, info]) => {
-                             if (pid === witch.id) return;
-                             // EXCLUSION OBLIGATOIRE : La victime des loups de cette nuit
-                             if (pid === nightActions.wolvesVictim) return;
-
-                             if (info.score < minScore) {
-                               minScore = info.score;
-                               candidates = [pid];
-                             } else if (info.score === minScore) {
-                               candidates.push(pid);
-                             }
-                          });
-
-                          if (candidates.length > 0) {
-                            const targetId = candidates[Math.floor(Math.random() * candidates.length)];
-                            commitWitchDeath(targetId);
-                            triggerHighlight([targetId]);
-                          }
+                        if (deathTargetId) {
+                          commitWitchDeath(deathTargetId);
+                          triggerHighlight([deathTargetId]);
                         }
                     }}>🎲 Sorcière IA (Sauvetage Stratégique)</button>
                   )}
