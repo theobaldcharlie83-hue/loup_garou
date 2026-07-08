@@ -265,9 +265,7 @@ export default function SetupScreen() {
               onClick={() => navigate('/dashboard')}
               style={{ marginBottom: '10px', background: 'var(--color-secondary)', color: 'var(--color-surface)' }}
             >
-              <span className="material-symbols-outlined icon-filled" aria-hidden="true">
-                play_arrow
-              </span>
+              <span aria-hidden="true">▶️</span>
               Retourner à la partie en cours
             </button>
           )}
@@ -279,9 +277,7 @@ export default function SetupScreen() {
               onClick={() => setIsResumeModalOpen(true)}
               style={{ marginBottom: '10px' }}
             >
-              <span className="material-symbols-outlined icon-filled" aria-hidden="true">
-                restore
-              </span>
+              <span aria-hidden="true">📂</span>
               Reprendre une partie sauvegardée
             </button>
           )}
@@ -293,9 +289,7 @@ export default function SetupScreen() {
             disabled={!ready}
             aria-disabled={!ready}
           >
-            <span className="material-symbols-outlined icon-filled" aria-hidden="true">
-              auto_stories
-            </span>
+            <span aria-hidden="true">📖</span>
             Commencer la Chronique
           </button>
         </div>

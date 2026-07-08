@@ -75,6 +75,16 @@ body {
   --color-inverse-on-surface:   #2b2d53;
   --color-inverse-primary:      #794d8a;
   --color-surface-tint:         #e8b4f9;
+
+  /* Sémantiques additionnelles (audit UI : remplacer les couleurs
+     hexadécimales inline dispersées dans le Dashboard) */
+  --color-danger:               #ff4d4d; /* exécution, élimination, potion épuisée */
+  --color-danger-container:     #2d0a0a; /* fond des panneaux d'issue de vote */
+  --color-success:              #4caf50; /* score de confiance positif */
+  --color-gold:                 #ffd700; /* thème Capitaine */
+  --color-accent-ai:            #a78bfa; /* suggestions et actions IA */
+  --color-muted:                #aaa;    /* texte secondaire discret */
+  --color-input-bg:             #1a0f41; /* fond des champs de saisie sur fond sombre */
 }
 
 /* ---------- 3. TYPOGRAPHIE ---------- */
@@ -276,17 +286,6 @@ body {
   transition: background var(--anim-fast);
 }
 .card-surface:hover { background: var(--color-surface-container-high); }
-
-/* --- Icônes Material (standardisées) --- */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  user-select: none;
-  font-size: 1.25em;
-  vertical-align: middle;
-}
-.icon-filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
 
 /* --- Badge de statut --- */
 .badge {

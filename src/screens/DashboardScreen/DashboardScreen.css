@@ -51,6 +51,13 @@
 .header-spacer { flex: 1; }
 .header-actions { display: flex; align-items: center; gap: var(--space-3); }
 
+.header-disabled-hint {
+  font-size: var(--text-label-md);
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+  white-space: nowrap;
+}
+
 .header-btn {
   display: inline-flex;
   align-items: center;
@@ -413,9 +420,9 @@
 .phase-preparation .player-avatar { cursor: crosshair; }
 .phase-preparation .player-avatar.selected .avatar-circle {
   animation: swapPulse 1s ease-in-out infinite;
-  border-color: #a78bfa;
+  border-color: var(--color-accent-ai);
   box-shadow: 0 0 20px 6px rgba(167,139,250,0.6), 0 0 40px rgba(167,139,250,0.3);
-  outline: 3px dashed #a78bfa;
+  outline: 3px dashed var(--color-accent-ai);
   outline-offset: 4px;
 }
 @keyframes swapPulse {
@@ -477,7 +484,7 @@
     top: -30px;
     right: -30px;
     font-size: 1.5rem;
-    filter: drop-shadow(0 0 8px #ff4d4d);
+    filter: drop-shadow(0 0 8px var(--color-danger));
     z-index: 10;
     pointer-events: none;
 }
@@ -785,7 +792,7 @@
 
 .succession-modal {
   background: linear-gradient(145deg, #1a0f41, #301b6e);
-  border: 2px solid #ffd700;
+  border: 2px solid var(--color-gold);
   border-radius: 24px;
   padding: 40px;
   width: 90%;
@@ -798,7 +805,7 @@
 
 .succession-modal h2 {
   font-family: var(--font-headline);
-  color: #ffd700;
+  color: var(--color-gold);
   margin-bottom: 15px;
 }
 
@@ -832,7 +839,7 @@
 
 .succession-item:hover {
   background: rgba(255, 215, 0, 0.1);
-  border-color: #ffd700;
+  border-color: var(--color-gold);
   transform: translateX(5px);
 }
 
@@ -890,7 +897,7 @@
   to {
     box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.7), 0 0 40px rgba(255, 215, 0, 0.3);
     transform: scale(1.15);
-    border-color: #ffd700;
+    border-color: var(--color-gold);
   }
 }
 
@@ -934,7 +941,7 @@
 .grimoire-modal h2 {
   font-family: var(--font-headline);
   font-size: 1.2rem;
-  color: #ffd700;
+  color: var(--color-gold);
   margin-bottom: 8px;
 }
 
@@ -1019,7 +1026,7 @@
   font-family: var(--font-display);
   font-size: 2.2rem;
   font-weight: 800;
-  color: #ff4d4d;
+  color: var(--color-danger);
   text-transform: uppercase;
   letter-spacing: 2px;
   margin: 10px 0;

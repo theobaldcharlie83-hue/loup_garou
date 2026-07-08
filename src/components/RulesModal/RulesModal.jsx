@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useEscapeToClose from '../../hooks/useEscapeToClose';
 import './RulesModal.css';
 
 const RULES_DATA = [
@@ -143,6 +144,7 @@ const RULES_DATA = [
 
 export default function RulesModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('principles');
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

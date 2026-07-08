@@ -10,6 +10,32 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.png', 'favicon.ico', 'icon-192.png', 'icon-512.png', 'icons.svg'],
+      workbox: {
+        // Les polices Google (Newsreader, Plus Jakarta Sans) ne sont pas
+        // servies depuis notre origine : sans ceci, l'app perd sa
+        // typographie hors-ligne après le premier chargement.
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-stylesheets',
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 an
+              },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Le Grimoire du Village',
         short_name: 'Le Grimoire',
