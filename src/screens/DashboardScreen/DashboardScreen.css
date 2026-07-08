@@ -778,12 +778,18 @@
   animation: floatBounce 2s infinite ease-in-out;
 }
 
+/* Hiérarchie des overlays (du plus bas au plus haut) :
+   modales d'info / interactions (.qa-modal-overlay) 1000 < dialogues Grimoire 1100
+   < succession du Capitaine 1500 < écran de victoire 2000.
+   La file `pendingInteractions` garantit déjà qu'une seule résolution interactive
+   (succession / tir du Chasseur) est affichée à la fois ; ces z-index distincts
+   évitent toute superposition ambiguë résiduelle. */
 .succession-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  z-index: 1000;
+  z-index: 1500;
   display: flex;
   align-items: center;
   justify-content: center;

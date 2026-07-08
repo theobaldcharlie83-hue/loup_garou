@@ -1,13 +1,15 @@
-import useEscapeToClose from '../../../hooks/useEscapeToClose'
+import { useRef } from 'react'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
 /** Modale de confirmation après sauvegarde — affiche aussi l'échec (ex. quota localStorage plein). */
 export default function SaveModal({ show, success, onContinue, onGoHome }) {
-  useEscapeToClose(show, onContinue)
+  const modalRef = useRef(null)
+  useFocusTrap(modalRef, show, onContinue)
   if (!show) return null
 
   return (
     <div className="grimoire-modal-overlay">
-      <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
+      <div className="grimoire-modal" ref={modalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="grimoire-modal-icon">{success ? '💾' : '⚠️'}</div>
         <h2>{success ? 'Partie Sauvegardée !' : 'Échec de la sauvegarde'}</h2>
         <p>

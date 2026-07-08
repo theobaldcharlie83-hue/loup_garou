@@ -5,11 +5,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
-/* Numéro de schéma des sauvegardes — incrémenter à chaque changement de forme
-   de l'état persisté, afin que les migrations puissent combler les champs
-   manquants sur d'anciennes sauvegardes. */
-export const SAVE_SCHEMA_VERSION = 1
-
 /* ─── CATALOGUE OFFICIEL "BEST OF" ─────────────────────────── */
 export const ROLE_CATALOG = [
   // ── Loups-Garous
@@ -50,13 +45,14 @@ export const DEFAULT_HUMAN_NAMES = [
   'Timéo', 'Lise', 'Léonie', 'Papa', 'Maman'
 ]
 
-/* ─── UTILITAIRE : identifiant unique pour les entrées de journal ─────
-   Date.now() peut produire des doublons quand plusieurs entrées sont
-   poussées dans le même tick (ex. cascade de morts), ce qui casse les
-   `key` React (rendu dupliqué/omis) et l'égalité des entrées. */
-function newId() {
-  return crypto.randomUUID()
-}
+/* ─── UTILITAIRE : identifiants monotones (évite les collisions de Date.now()) ─ */
+let _uidCounter = 0
+const uid = () => `i${Date.now().toString(36)}-${_uidCounter++}`
+
+/* Numéro de schéma des sauvegardes — incrémenter à chaque changement de forme
+   de l'état persisté, afin que les migrations puissent combler les champs
+   manquants sur d'anciennes sauvegardes. */
+export const SAVE_SCHEMA_VERSION = 1
 
 /* ─── UTILITAIRE : Fisher-Yates shuffle ────────────────────── */
 function shuffle(arr) {
@@ -137,8 +133,12 @@ const initialState = {
   wildChildModelId: null,
   chienLoupSide: null, // 'village' | 'loup'
   captainId: null,
-  successionPendingForId: null, // ID du capitaine mort en attente de successeur
-  hunterPendingId: null, // ID du Chasseur mort en attente de son tir
+  // File des résolutions interactives en attente (sérialisées, traitées une à une) :
+  //   { id, type: 'succession' | 'hunter', playerId }
+  // 'succession' = capitaine mort devant nommer un successeur ; 'hunter' = Chasseur
+  // mort devant tirer. Une file (et non un scalaire) permet d'enchaîner correctement
+  // plusieurs résolutions (ex. capitaine → successeur abattu par le Chasseur → nouvelle succession).
+  pendingInteractions: [],
 
   // ── Historique global pour l'annulation
   pastStates: [],
@@ -352,14 +352,14 @@ export const useGameStore = create(persist((set, get) => ({
       phase:    'preparation',
       dayNumber: 0,
       journal: [{
-        id: newId(),
+        id:        uid(),
         timestamp: new Date(),
         text:      "Le village va bientôt s'endormir. Vérifiez et organisez les rôles !",
         type:      'narration',
       }],
     })
   },
-  
+
   setActiveNightSteps: (steps) => set({ activeNightSteps: steps }),
 
   setDayVotes: (votes) => set({ dayVotes: votes }),
@@ -398,14 +398,32 @@ export const useGameStore = create(persist((set, get) => ({
      players: s.players.map(p => ({ ...p, isCaptain: p.id === playerId }))
   })),
 
-  transferCaptaincy: (newCaptainId) => set((s) => ({
-     captainId: newCaptainId,
-     successionPendingForId: null,
-     players: s.players.map(p => ({ ...p, isCaptain: p.id === newCaptainId }))
+  transferCaptaincy: (newCaptainId) => {
+     set((s) => ({
+        captainId: newCaptainId,
+        players: s.players.map(p => ({ ...p, isCaptain: p.id === newCaptainId }))
+     }));
+     // La succession en tête de file est résolue : on la retire (et on évalue la
+     // victoire si plus rien n'est en attente).
+     get().resolvePendingInteraction();
+  },
+
+  /* ── File des résolutions interactives (succession / chasseur) ── */
+  enqueueInteraction: (interaction) => set((s) => ({
+     pendingInteractions: [...s.pendingInteractions, { id: uid(), ...interaction }]
   })),
 
-  // Referme la fenêtre de tir du Chasseur (qu'il ait tiré ou raté sa cible)
-  resolveHunterPending: () => set({ hunterPendingId: null }),
+  // Retire l'interaction en tête de file ; déclenche checkGameOver si la file est vide.
+  resolvePendingInteraction: () => {
+     set((s) => ({ pendingInteractions: s.pendingInteractions.slice(1) }));
+     if (get().pendingInteractions.length === 0) get().checkGameOver();
+  },
+
+  // Résout le tir du Chasseur en tête de file. targetId=null => le Chasseur rate.
+  resolveHunterShot: (targetId) => {
+     if (targetId) get().eliminatePlayer(targetId, 'hunter');
+     get().resolvePendingInteraction();
+  },
 
   triggerAncientCurse: () => {
     set((s) => {
@@ -420,7 +438,7 @@ export const useGameStore = create(persist((set, get) => ({
         players: newPlayers,
         journal: [
           ...s.journal,
-          { id: newId(), timestamp: new Date(), text: "⚡ La Malédiction de l'Ancien a frappé ! Tous les villageois spéciaux perdent leurs pouvoirs.", type: 'event' }
+          { id: uid(), timestamp: new Date(), text: "⚡ La Malédiction de l'Ancien a frappé ! Tous les villageois spéciaux perdent leurs pouvoirs.", type: 'event' }
         ]
       };
     });
@@ -435,33 +453,23 @@ export const useGameStore = create(persist((set, get) => ({
        return;
     }
 
-    const loversAlive = s.lovers.length === 2 && 
-                        s.players.find(p => p.id === s.lovers[0])?.isAlive && 
+    const loversAlive = s.lovers.length === 2 &&
+                        s.players.find(p => p.id === s.lovers[0])?.isAlive &&
                         s.players.find(p => p.id === s.lovers[1])?.isAlive;
 
     // Calcul des camps actuels
     const getTeam = (p) => getPlayerTeam(p, s.players, s);
 
-    // getPlayerTeam ne résout dynamiquement le camp 'loup' des ambigus (Enfant
-    // Sauvage muté, Chien-Loup rallié) que dans certains cas ; tant qu'un ambigu
-    // n'a pas basculé, il retombe sur le libellé catalogue 'ambigu', invisible
-    // des calculs de victoire ci-dessous. On résout donc explicitement son camp
-    // effectif pour les conditions de fin de partie :
-    // - Chien-Loup indécis (n'a pas encore choisi son camp) : bloque toute
-    //   victoire tant qu'il est vivant, son allégeance finale n'étant pas fixée.
-    // - Tout autre ambigu non basculé (ex. Enfant Sauvage dont le modèle est
-    //   encore vivant) se comporte comme un villageois tant qu'il n'est pas loup.
-    const resolveVictoryTeam = (p) => {
+    const aliveWolves = alive.filter(p => getTeam(p) === 'loup' || p.roleId === 'loup-blanc');
+    // Un joueur « ambigu » non rallié (Enfant Sauvage dont le modèle vit, Chien-Loup
+    // n'ayant pas encore choisi) reste aligné Village pour la détection de victoire.
+    // Sans cela, les Loups pouvaient être déclarés vainqueurs alors qu'un joueur
+    // pro-village était encore en vie.
+    const aliveVillagers = alive.filter(p => {
       const team = getTeam(p);
-      if (team !== 'ambigu') return team;
-      if (p.roleId === 'chien-loup') return 'undecided';
-      return 'village';
-    };
-
-    const aliveWolves = alive.filter(p => resolveVictoryTeam(p) === 'loup' || p.roleId === 'loup-blanc');
-    const aliveVillagers = alive.filter(p => resolveVictoryTeam(p) === 'village');
-    const aliveSolitaries = alive.filter(p => resolveVictoryTeam(p) === 'solitaire');
-    const aliveUndecided = alive.filter(p => resolveVictoryTeam(p) === 'undecided');
+      return team === 'village' || team === 'ambigu';
+    });
+    const aliveSolitaries = alive.filter(p => getTeam(p) === 'solitaire');
     const alivePiper = alive.filter(p => p.roleId === 'joueur-flute');
 
     // 2. JOUEUR DE FLUTE (Victoire instantanée)
@@ -491,14 +499,14 @@ export const useGameStore = create(persist((set, get) => ({
     // 5. VICTOIRE DES LOUPS
     // On ne vérifie la victoire des loups que si les amoureux sont morts ou n'existent pas
     // car des amoureux pourraient être dans le camp des loups mais vouloir gagner seuls.
-    if (!loversAlive && aliveUndecided.length === 0 && aliveVillagers.length === 0 && aliveSolitaries.length === 0) {
+    if (!loversAlive && aliveVillagers.length === 0 && aliveSolitaries.length === 0) {
        set({ winner: 'loups' });
        return;
     }
 
     // 6. VICTOIRE DU VILLAGE
     // Idem pour le village
-    if (!loversAlive && aliveUndecided.length === 0 && aliveWolves.length === 0 && aliveSolitaries.length === 0) {
+    if (!loversAlive && aliveWolves.length === 0 && aliveSolitaries.length === 0) {
        set({ winner: 'village' });
        return;
     }
@@ -538,36 +546,10 @@ export const useGameStore = create(persist((set, get) => ({
   }),
 
   /* ── Joueurs ────────────────────────────────────────────────── */
-  // Point d'entrée public : élimine un joueur et traite en cascade toutes les
-  // morts induites (chagrin d'amour, lien des Sœurs), chacune redéclenchant
-  // à son tour succession du Capitaine, malédiction de l'Ancien, vengeance du
-  // Chevalier et tir du Chasseur — plus seulement la mort initiale.
   eliminatePlayer: (playerId, mode = 'generic') => {
-    get()._processDeaths([{ id: playerId, mode }], new Set());
-  },
-
-  // Traite une file de morts (FIFO) en cascade, jusqu'à ce qu'aucune mort
-  // induite ne reste à traiter. `processedIds` évite de retraiter deux fois
-  // un même joueur si plusieurs cascades se recoupent (ex. sœur + amoureuse).
-  _processDeaths: (queue, processedIds) => {
-    if (queue.length === 0) {
-      get().checkGameOver();
-      return;
-    }
-
-    const [{ id: playerId, mode }, ...rest] = queue;
-
-    if (processedIds.has(playerId)) {
-      get()._processDeaths(rest, processedIds);
-      return;
-    }
-
     const s = get();
     const player = s.players.find((p) => p.id === playerId);
-    if (!player || !player.isAlive) {
-      get()._processDeaths(rest, processedIds);
-      return;
-    }
+    if (!player || !player.isAlive) return;
 
     // --- LOGIQUE ANCIEN (SURVIE LOUPS) ---
     // Ne survit que face aux attaques de loups (Simple, Infect Pere, Grand Mechant, Loup Blanc)
@@ -576,65 +558,32 @@ export const useGameStore = create(persist((set, get) => ({
          ancienLives: s.ancienLives - 1,
          journal: [
            ...s.journal,
-           { id: newId(), timestamp: new Date(), text: `🧙 L'Ancien (${player.name}) survit à l'attaque des loups ! (🛡️ 1 vie restante)`, type: 'event' }
+           { id: uid(), timestamp: new Date(), text: `🧙 L'Ancien (${player.name}) survit à l'attaque des loups ! (🛡️ 1 vie restante)`, type: 'event' }
          ]
        });
-       get()._processDeaths(rest, processedIds);
        return;
     }
-
-    processedIds.add(playerId);
 
     let newPlayers = s.players.map(p => p.id === playerId ? { ...p, isAlive: false, deathCause: mode } : p);
     let newJournal = [
       ...s.journal,
-      { id: newId(), timestamp: new Date(), text: `${player.name} (${ROLE_BY_ID[player.roleId]?.name}) a été éliminé(e).`, type: 'death' }
+      { id: uid(), timestamp: new Date(), text: `${player.name} (${ROLE_BY_ID[player.roleId]?.name}) a été éliminé(e).`, type: 'death' }
     ];
 
-    // Morts induites par CETTE mort, réinjectées dans la file pour être
-    // traitées avec exactement la même logique (succession, malédiction,
-    // chevalier, chasseur...) que n'importe quelle mort directe.
-    const inducedDeaths = [];
-
-    // --- GESTION AMOUREUX (MORT PAR CHAGRIN) ---
-    if (s.lovers.includes(playerId)) {
-       const partnerId = s.lovers.find(id => id !== playerId);
-       const partner = s.players.find(p => p.id === partnerId);
-       if (partner && partner.isAlive && !processedIds.has(partnerId)) {
-          newJournal.push({
-            id: newId(),
-            timestamp: new Date(),
-            text: `💔 ${partner.name} succombe à son chagrin d'amour pour ${player.name}...`,
-            type: 'death'
-          });
-          inducedDeaths.push({ id: partnerId, mode: 'heartbreak' });
+    // --- MALÉDICTION DE L'ANCIEN ---
+    // Se déclenche si tué par le Village (Vote, Potion Mort, Chasseur).
+    // NB : les morts en chaîne (chagrin 'heartbreak', lien des Sœurs 'sister-bond')
+    // ne déclenchent PAS la malédiction, conformément aux règles.
+    if (player.roleId === 'ancien' && ['vote', 'witch-death', 'hunter'].includes(mode)) {
+       set({ players: newPlayers, journal: newJournal, condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId });
+       get().triggerAncientCurse();
+       // Un Ancien peut être Capitaine : sa mort ouvre alors une succession.
+       if (player.isCaptain) {
+          get().pushToJournal(`🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`, 'event');
+          get().enqueueInteraction({ type: 'succession', playerId });
        }
-    }
-
-    // --- GESTION DES DEUX SŒURS (LIEN DE SANG) ---
-    // Quand l'une meurt, l'autre meurt aussi — sauf si c'est déjà la mort de la deuxième
-    if (player.roleId === 'soeurs') {
-       const sister = s.players.find(p => p.roleId === 'soeurs' && p.id !== playerId && p.isAlive);
-       if (sister && !processedIds.has(sister.id)) {
-          newJournal.push({
-            id: newId(),
-            timestamp: new Date(),
-            text: `👯 ${sister.name} ne peut survivre sans sa sœur ${player.name}... Elle s'effondre à son tour.`,
-            type: 'death'
-          });
-          inducedDeaths.push({ id: sister.id, mode: 'sister-bond' });
-       }
-    }
-
-    // --- SUCCESSION DU CAPITAINE ---
-    let successionId = s.successionPendingForId;
-    if (player.isCaptain) {
-      successionId = player.id;
-      newJournal.push({
-        id: newId(),
-        text: `🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`,
-        type: 'event'
-      });
+       if (get().pendingInteractions.length === 0) get().checkGameOver();
+       return;
     }
 
     // --- MORT DU JOUEUR DE FLÛTE ---
@@ -645,26 +594,22 @@ export const useGameStore = create(persist((set, get) => ({
       activeNightSteps: s.activeNightSteps.filter(st => st.id !== 'joueur-flute' && st.id !== 'joueurs-charmes'),
     } : {};
 
-    // --- MORT DU CHASSEUR ---
-    // Ouvre la fenêtre de tir en attente, pilotée depuis le store (et non plus
-    // détectée côté UI par un useEffect qui comparait l'état précédent).
-    const isHunter = player.roleId === 'chasseur';
-    const hunterPatch = isHunter ? { hunterPendingId: playerId } : {};
-
     set({
       players: newPlayers,
       journal: newJournal,
       condemnedPlayerId: mode === 'vote' ? playerId : s.condemnedPlayerId,
-      successionPendingForId: successionId,
-      ...piperPatch,
-      ...hunterPatch,
+      ...piperPatch
     });
 
-    // --- MALÉDICTION DE L'ANCIEN ---
-    // Se déclenche si tué par le Village (Vote, Potion Mort, Chasseur), y compris
-    // si sa mort provient d'une cascade (ex. chagrin d'amour suite à un vote).
-    if (player.roleId === 'ancien' && ['vote', 'witch-death', 'hunter'].includes(mode)) {
-       get().triggerAncientCurse();
+    // --- RÉSOLUTIONS INTERACTIVES DÉCLENCHÉES PAR CETTE MORT (empilées dans l'ordre) ---
+    // Le tir du Chasseur d'abord (il peut changer le plateau), puis la succession du
+    // Capitaine (le successeur est choisi en connaissance du tir).
+    if (player.roleId === 'chasseur') {
+      get().enqueueInteraction({ type: 'hunter', playerId });
+    }
+    if (player.isCaptain) {
+      get().pushToJournal(`🎖️ Le Capitaine ${player.name} est tombé ! Il doit nommer un successeur.`, 'event');
+      get().enqueueInteraction({ type: 'succession', playerId });
     }
 
     // --- LOGIQUE CHEVALIER (Vengeance épée rouillée) ---
@@ -690,13 +635,40 @@ export const useGameStore = create(persist((set, get) => ({
           chevalierContaminationDay: s.dayNumber,
           journal: [
             ...get().journal,
-            { id: newId(), timestamp: new Date(), text: `⚔️ Le Chevalier a blessé l'un de ses agresseurs avec son épée rouillée avant de sombrer...`, type: 'event' }
+            { id: uid(), timestamp: new Date(), text: `⚔️ Le Chevalier a blessé l'un de ses agresseurs avec son épée rouillée avant de sombrer...`, type: 'event' }
           ]
         });
       }
     }
 
-    get()._processDeaths([...rest, ...inducedDeaths], processedIds);
+    // --- MORTS EN CHAÎNE (routées via eliminatePlayer pour déclencher tous les
+    // pouvoirs liés à la mort : succession du Capitaine, tir du Chasseur, etc.) ---
+    // Les gardes `isAlive` empêchent toute boucle (le partenaire/la sœur déjà mort
+    // ne re-déclenche pas la chaîne en sens inverse).
+
+    // Amoureux — mort par chagrin
+    if (s.lovers.includes(playerId)) {
+      const partnerId = s.lovers.find(id => id !== playerId);
+      const partner = get().players.find(p => p.id === partnerId);
+      if (partner && partner.isAlive) {
+        get().pushToJournal(`💔 ${partner.name} succombe à son chagrin d'amour pour ${player.name}...`, 'death');
+        get().eliminatePlayer(partnerId, 'heartbreak');
+      }
+    }
+
+    // Les Deux Sœurs — lien de sang
+    if (player.roleId === 'soeurs') {
+      const sister = get().players.find(p => p.roleId === 'soeurs' && p.id !== playerId && p.isAlive);
+      if (sister) {
+        get().pushToJournal(`👯 ${sister.name} ne peut survivre sans sa sœur ${player.name}... Elle s'effondre à son tour.`, 'death');
+        get().eliminatePlayer(sister.id, 'sister-bond');
+      }
+    }
+
+    // On n'évalue la victoire que lorsqu'aucune résolution interactive
+    // (succession / tir du Chasseur) n'est en attente : sinon un vainqueur pourrait
+    // être figé « par-dessus » une succession encore à régler.
+    if (get().pendingInteractions.length === 0) get().checkGameOver();
   },
 
   /* ── Actions de Nuit & Pouvoirs ─────────────────────────────── */
@@ -704,7 +676,7 @@ export const useGameStore = create(persist((set, get) => ({
     set((s) => ({ nightActions: { ...s.nightActions, [key]: val } })),
 
   pushToJournal: (text, type = 'event') => set((s) => ({
-    journal: [...s.journal, { id: newId(), timestamp: new Date(), text, type }]
+    journal: [...s.journal, { id: uid(), timestamp: new Date(), text, type }]
   })),
 
   commitSeerObservation: (playerId) => set((s) => {
@@ -725,7 +697,9 @@ export const useGameStore = create(persist((set, get) => ({
       witchPotions: { ...s.witchPotions, life: false },
       witchSavedPlayerIds: [...s.witchSavedPlayerIds, playerId],
       nightActions: { ...s.nightActions, witchHealed: true },
-      ancienLives: isAncien ? 2 : s.ancienLives,
+      // Règle officielle : un Ancien soigné par la Sorcière « récupère une seule vie »
+      // (il perd sa résistance spéciale et meurt à la prochaine attaque de loups).
+      ancienLives: isAncien ? 1 : s.ancienLives,
     }
   }),
 
@@ -748,7 +722,7 @@ export const useGameStore = create(persist((set, get) => ({
         infectUsed: true,
         journal: [
           ...s.journal,
-          { id: newId(), timestamp: new Date(), text: `☣️ L'Infect Père tente d'infecter ${p.name}... mais l'Ancien est immunisé ! Le pouvoir est perdu.`, type: 'event' }
+          { id: uid(), timestamp: new Date(), text: `☣️ L'Infect Père tente d'infecter ${p.name}... mais l'Ancien est immunisé ! Le pouvoir est perdu.`, type: 'event' }
         ]
       }
     }
@@ -794,7 +768,7 @@ export const useGameStore = create(persist((set, get) => ({
         const infected = state.players.find(p => p.id === nightA.infectedTargetId);
         const isPiper = infected?.roleId === 'joueur-flute';
         return {
-          players: state.players.map(p => 
+          players: state.players.map(p =>
             p.id === nightA.infectedTargetId ? { ...p, isInfected: true } : p
           ),
           infectUsed: true,
@@ -846,7 +820,7 @@ export const useGameStore = create(persist((set, get) => ({
 
       // Le montreur grogne si un voisin est loup, OU s'il est lui-même devenu un loup (infecté)
       if (isPlayerWolf(left, stateAfterKills.players, stateAfterKills) || isPlayerWolf(right, stateAfterKills.players, stateAfterKills) || isPlayerWolf(montreur, stateAfterKills.players, stateAfterKills)) {
-        bearGrowlMessage = { id: newId(), timestamp: new Date(), text: `🐻 L'ours du Montreur grogne !`, type: 'event' };
+        bearGrowlMessage = { id: uid(), timestamp: new Date(), text: `🐻 L'ours du Montreur grogne !`, type: 'event' };
 
         // On marque le montreur comme grognant ET on marque les voisins historiques comme suspects
         playersAfterBear = stateAfterKills.players.map(p => {
@@ -858,7 +832,7 @@ export const useGameStore = create(persist((set, get) => ({
     }
 
     const toKillMessages = toKill.map(k => ({
-      id: newId(),
+      id: uid(),
       timestamp: new Date(),
       text: `${stateAfterKills.players.find(p => p.id === k.id)?.name} a été éliminé(e) durant la nuit.`,
       type: 'death'
@@ -877,7 +851,7 @@ export const useGameStore = create(persist((set, get) => ({
       journal: [
         ...stateAfterKills.journal,
         ...(bearGrowlMessage ? [bearGrowlMessage] : []),
-        { id: newId(), timestamp: new Date(), text: `Jour ${stateAfterKills.dayNumber} : Le village se réveille.`, type: 'phase' },
+        { id: uid(), timestamp: new Date(), text: `Jour ${stateAfterKills.dayNumber} : Le village se réveille.`, type: 'phase' },
         ...toKillMessages
       ]
     })
@@ -925,7 +899,7 @@ export const useGameStore = create(persist((set, get) => ({
              nightActions: {},
              nightStepIndex: -1,
              activeNightSteps: [],
-             journal: [...s.journal, { id: newId(), timestamp: new Date(), text: `Nuit 1 — Le village s'endort…`, type: 'phase' }]
+             journal: [...s.journal, { id: uid(), timestamp: new Date(), text: `Nuit 1 — Le village s'endort…`, type: 'phase' }]
            }
         }
 
@@ -959,8 +933,8 @@ export const useGameStore = create(persist((set, get) => ({
           chevalierContaminationDay: contaminationDay,
           chevalierDeadWolfRevealId: revealId,
           journal: [
-             ...s.journal, 
-             { id: newId(), timestamp: new Date(), text: `Nuit ${nextDay} — Le village s'endort…`, type: 'phase' }
+             ...s.journal,
+             { id: uid(), timestamp: new Date(), text: `Nuit ${nextDay} — Le village s'endort…`, type: 'phase' }
           ]
         }
       }
@@ -974,7 +948,7 @@ export const useGameStore = create(persist((set, get) => ({
     set((s) => ({
       journal: [
         ...s.journal,
-        { id: newId(), timestamp: new Date(), text, type },
+        { id: uid(), timestamp: new Date(), text, type },
       ],
     })),
 
@@ -990,9 +964,11 @@ export const useGameStore = create(persist((set, get) => ({
   // silencieusement faux.
   saveGameToLocalStorage: () => {
     const state = get();
-    const serializableState = {};
+    const serializableState = { schemaVersion: SAVE_SCHEMA_VERSION };
     Object.keys(state).forEach(key => {
-      if (typeof state[key] !== 'function') {
+      // Exclure les fonctions et l'historique d'annulation (pastStates) : il peut peser
+      // lourd (jusqu'à 20 instantanés complets) et n'a pas vocation à être persisté.
+      if (typeof state[key] !== 'function' && key !== 'pastStates') {
         serializableState[key] = state[key];
       }
     });
@@ -1016,7 +992,7 @@ export const useGameStore = create(persist((set, get) => ({
             id: currentSaveId,
             name: saveName,
             timestamp: Date.now(),
-            state: { ...serializableState, activeSaveId: currentSaveId, schemaVersion: SAVE_SCHEMA_VERSION }
+            state: { ...serializableState, activeSaveId: currentSaveId }
           };
         } else {
           currentSaveId = Date.now();
@@ -1024,7 +1000,7 @@ export const useGameStore = create(persist((set, get) => ({
             id: currentSaveId,
             name: saveName,
             timestamp: Date.now(),
-            state: { ...serializableState, activeSaveId: currentSaveId, schemaVersion: SAVE_SCHEMA_VERSION }
+            state: { ...serializableState, activeSaveId: currentSaveId }
           });
         }
       } else {
@@ -1033,12 +1009,12 @@ export const useGameStore = create(persist((set, get) => ({
           id: currentSaveId,
           name: saveName,
           timestamp: Date.now(),
-          state: { ...serializableState, activeSaveId: currentSaveId, schemaVersion: SAVE_SCHEMA_VERSION }
+          state: { ...serializableState, activeSaveId: currentSaveId }
         });
       }
 
       localStorage.setItem('loup_garou_saved_games', JSON.stringify(saves));
-      localStorage.setItem('loup_garou_saved_game', JSON.stringify({ ...serializableState, activeSaveId: currentSaveId, schemaVersion: SAVE_SCHEMA_VERSION }));
+      localStorage.setItem('loup_garou_saved_game', JSON.stringify({ ...serializableState, activeSaveId: currentSaveId }));
       set({ activeSaveId: currentSaveId });
       return true;
     } catch (e) {
@@ -1048,20 +1024,20 @@ export const useGameStore = create(persist((set, get) => ({
   },
 
   loadGameFromLocalStorage: (id = null) => {
-    // Comble les champs manquants (ancienne version de la sauvegarde) avec les
-    // valeurs par défaut actuelles, et reconvertit les timestamps du journal.
-    const reviveSave = (parsed) => {
+    // Réhydrate une sauvegarde : fusionne avec initialState (les champs ajoutés depuis
+    // obtiennent leur valeur par défaut), réinitialise pastStates et restaure les dates.
+    const hydrate = (parsed, extra = {}) => {
       if (!parsed.schemaVersion || parsed.schemaVersion < SAVE_SCHEMA_VERSION) {
         console.warn(`Sauvegarde d'un ancien schéma (v${parsed.schemaVersion ?? 0}) — migration vers v${SAVE_SCHEMA_VERSION}.`);
       }
-      const merged = { ...initialState, ...parsed };
-      if (merged.journal) {
-        merged.journal = merged.journal.map(entry => ({
-          ...entry,
-          timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
-        }));
-      }
-      return merged;
+      const journal = Array.isArray(parsed.journal)
+        ? parsed.journal.map(entry => ({
+            ...entry,
+            timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+          }))
+        : [];
+      set({ ...initialState, ...parsed, journal, pastStates: [], ...extra });
+      return true;
     };
 
     try {
@@ -1070,19 +1046,11 @@ export const useGameStore = create(persist((set, get) => ({
         if (savesStr) {
           const saves = JSON.parse(savesStr);
           const save = saves.find(s => s.id === id);
-          if (save) {
-            const merged = reviveSave(save.state);
-            set({ ...merged, activeSaveId: id });
-            return true;
-          }
+          if (save) return hydrate(save.state, { activeSaveId: id });
         }
       } else {
         const saved = localStorage.getItem('loup_garou_saved_game');
-        if (saved) {
-          const merged = reviveSave(JSON.parse(saved));
-          set(merged);
-          return true;
-        }
+        if (saved) return hydrate(JSON.parse(saved));
       }
     } catch (e) {
       console.error("Failed to load game from localStorage:", e);
@@ -1098,7 +1066,7 @@ export const useGameStore = create(persist((set, get) => ({
         saves = saves.filter(s => s.id !== id);
         localStorage.setItem('loup_garou_saved_games', JSON.stringify(saves));
       }
-      
+
       const legacySave = localStorage.getItem('loup_garou_saved_game');
       if (legacySave) {
         const parsed = JSON.parse(legacySave);

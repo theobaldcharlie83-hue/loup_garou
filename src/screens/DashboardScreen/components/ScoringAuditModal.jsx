@@ -1,14 +1,16 @@
+import { useRef } from 'react'
 import { useGameStore } from '../../../store/useGameStore'
-import useEscapeToClose from '../../../hooks/useEscapeToClose'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
 /** Modale d'audit du score de vote IA (matrice de confiance) d'une peluche. */
 export default function ScoringAuditModal({ qaModalPlushId, players, onClose }) {
-  useEscapeToClose(!!qaModalPlushId, onClose)
+  const modalRef = useRef(null)
+  useFocusTrap(modalRef, !!qaModalPlushId, onClose)
   if (!qaModalPlushId) return null
 
   return (
     <div className="qa-modal-overlay" onClick={onClose}>
-      <div className="qa-modal-content" onClick={e => e.stopPropagation()}>
+      <div className="qa-modal-content" ref={modalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: 10 }}>
           <h3>Audit Scoring : {players.find(p => p.id === qaModalPlushId)?.name}</h3>
           <button onClick={onClose} className="pap-btn close-btn" style={{ position: 'static', fontSize: '1rem' }}>✖</button>

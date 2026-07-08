@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import useEscapeToClose from '../../hooks/useEscapeToClose';
+import React, { useRef, useState } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import './RulesModal.css';
 
 const RULES_DATA = [
@@ -144,13 +144,14 @@ const RULES_DATA = [
 
 export default function RulesModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('principles');
-  useEscapeToClose(isOpen, onClose);
+  const modalRef = useRef(null);
+  useFocusTrap(modalRef, isOpen, onClose);
 
   if (!isOpen) return null;
 
   return (
     <div className="rules-modal-overlay" onClick={onClose}>
-      <div className="rules-modal-container" onClick={e => e.stopPropagation()}>
+      <div className="rules-modal-container" ref={modalRef} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <header className="rules-modal-header">
           <h2>📜 Grimoire des Règles</h2>
           <button className="rules-close-btn" onClick={onClose} aria-label="Fermer">✕</button>

@@ -1,4 +1,5 @@
 import { useGameStore, ROLE_BY_ID, isPlayerWolf } from '../../../store/useGameStore'
+import { ENDGAME_CAPTAIN_THRESHOLD } from '../../../services/aiConfig'
 import AIButton from './AIButton'
 
 // Utilitaires hors composant : un tirage aléatoire n'est "impur" que s'il se
@@ -10,10 +11,11 @@ function pickRandom(arr) {
 }
 
 // Stratégie commune "Fin de Partie" des loups IA : viser le Capitaine si
-// <= 4 survivants et que son partenaire (s'il en a un) n'est pas déjà loup.
+// <= ENDGAME_CAPTAIN_THRESHOLD survivants et que son partenaire (s'il en a
+// un) n'est pas déjà loup.
 function pickWolfTarget(valids, alive, captainId, lovers) {
   let target = pickRandom(valids)
-  if (alive.length <= 4 && captainId) {
+  if (alive.length <= ENDGAME_CAPTAIN_THRESHOLD && captainId) {
     const cap = valids.find(v => v.id === captainId)
     if (cap) {
       const partnerId = lovers.find(id => id !== captainId)
@@ -145,7 +147,7 @@ export default function NightStepCard({
           {currentStepInfo.id === 'loup-simple' && wolves.every(w => w.isPlush) && !nightActions.wolvesVictim && (
             <AIButton
               label="Loups"
-              strategy={alive.length <= 4 ? 'Stratégie Capitaine' : 'Victime Aléatoire'}
+              strategy={alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? 'Stratégie Capitaine' : 'Victime Aléatoire'}
               onClick={() => {
                 const valids = alive.filter(p => !isPlayerWolf(p, players, useGameStore.getState()));
                 if (valids.length > 0) {
@@ -162,7 +164,7 @@ export default function NightStepCard({
           {currentStepInfo.id === 'grand-mechant' && players.find(p => p.roleId === 'grand-mechant' && p.isAlive)?.isPlush && !nightActions.grandMechantVictim && (
             <AIButton
               label="Grand-Méchant-Loup"
-              strategy={alive.length <= 4 ? 'Stratégie Capitaine' : null}
+              strategy={alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? 'Stratégie Capitaine' : null}
               onClick={() => {
                 const valids = alive.filter(p => !isPlayerWolf(p, players, useGameStore.getState()) && p.id !== nightActions.wolvesVictim);
                 if (valids.length > 0) {
@@ -179,7 +181,7 @@ export default function NightStepCard({
           {currentStepInfo.id === 'infect-pere' && players.find(p => p.roleId === 'infect-pere' && p.isAlive)?.isPlush && !infectUsed && (
             <AIButton
               label="Infect Père"
-              strategy={alive.length <= 4 ? 'Stratégie Capitaine' : 'Dès que possible'}
+              strategy={alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? 'Stratégie Capitaine' : 'Dès que possible'}
               disabled={isProcessingAction}
               onClick={() => {
                 const valids = alive.filter(p => {
@@ -191,7 +193,7 @@ export default function NightStepCard({
 
                 if (valids.length > 0) {
                   const target = pickWolfTarget(valids, alive, captainId, lovers);
-                  useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir${alive.length <= 4 ? ' stratégiquement sur le Capitaine' : ''}.`);
+                  useGameStore.getState().pushToJournal(`🤖 L'IA Infect Père décide d'utiliser son pouvoir${alive.length <= ENDGAME_CAPTAIN_THRESHOLD ? ' stratégiquement sur le Capitaine' : ''}.`);
                   commitInfection(target.id);
                   setNightSelection([target.id]);
                   triggerHighlight([target.id]);
