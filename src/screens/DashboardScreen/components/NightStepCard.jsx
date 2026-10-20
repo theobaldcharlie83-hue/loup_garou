@@ -1,6 +1,7 @@
 import { useGameStore, ROLE_BY_ID, isPlayerWolf } from '../../../store/useGameStore'
 import { ENDGAME_CAPTAIN_THRESHOLD } from '../../../services/aiConfig'
 import AIButton from './AIButton'
+import RoleToken from '../../../components/RoleToken/RoleToken'
 
 // Utilitaires hors composant : un tirage aléatoire n'est "impur" que s'il se
 // produit pendant le rendu. Ici il n'est jamais appelé que depuis des
@@ -27,6 +28,20 @@ function pickWolfTarget(valids, alive, captainId, lovers) {
   return target
 }
 
+/* Jeton illustrant une étape qui n'est pas un rôle */
+const STEP_TOKEN = { amoureux: 'cupidon', 'joueurs-charmes': 'joueur-flute' }
+
+/** Joueurs vivants que le MJ doit réveiller pour l'étape en cours. */
+function getStepActors(stepId, { alive, wolves, lovers, charmedIds }) {
+  switch (stepId) {
+    case 'loup-simple':     return wolves
+    case 'amoureux':        return alive.filter(p => lovers.includes(p.id))
+    case 'joueurs-charmes': return alive.filter(p => charmedIds.includes(p.id))
+    case 'fin-nuit':        return []
+    default:                return alive.filter(p => p.roleId === stepId)
+  }
+}
+
 /**
  * Carte de l'étape de nuit courante : instructions, boutons "IA" pour les
  * peluches (unifiés via AIButton), affichages contextuels (Renard, Amoureux,
@@ -34,7 +49,7 @@ function pickWolfTarget(valids, alive, captainId, lovers) {
  */
 export default function NightStepCard({
   currentStepInfo, nightSelection, setNightSelection, triggerHighlight,
-  advanceNightPhase, handlePhaseToggle, isProcessingAction,
+  advanceNightPhase, handlePhaseToggle, isProcessingAction, onReveal,
 }) {
   const {
     players, nightActions, charmedIds, wildChildModelId, foxPowerLost,
@@ -45,10 +60,35 @@ export default function NightStepCard({
 
   const alive = players.filter(p => p.isAlive)
   const wolves = alive.filter(p => isPlayerWolf(p, players, useGameStore.getState()))
+  const actors = getStepActors(currentStepInfo.id, { alive, wolves, lovers, charmedIds })
+  const tokenRoleId = STEP_TOKEN[currentStepInfo.id] ?? currentStepInfo.id
+  const seerTarget = currentStepInfo.id === 'voyante' && nightActions.seerSeen
+    ? players.find(p => p.id === nightActions.seerSeen) : null
 
   return (
     <div className={`night-step-card ${currentStepInfo.isEnd ? 'end-night' : ''}`}>
-      <h3>{ROLE_BY_ID[currentStepInfo.id]?.icon} {currentStepInfo.label}</h3>
+      <div className="step-head">
+        {!currentStepInfo.isEnd && ROLE_BY_ID[tokenRoleId] && (
+          <span className="step-head__token"><RoleToken roleId={tokenRoleId} alt="" /></span>
+        )}
+        <div className="step-head__text">
+          <h3>{currentStepInfo.label}</h3>
+          {actors.length > 0 && (
+            <div className="step-actors" aria-label="Joueurs à réveiller">
+              {actors.map(p => (
+                <span key={p.id} className="step-actor">{p.isPlush ? '🧸 ' : ''}{p.name}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {currentStepInfo.instruction && <p className="step-instruction">{currentStepInfo.instruction}</p>}
+
+      {seerTarget && (
+        <button className="header-btn reveal-again-btn" onClick={() => onReveal(seerTarget)}>
+          🃏 Montrer la carte de {seerTarget.name}
+        </button>
+      )}
 
       {!currentStepInfo.isEnd ? (
         <>
@@ -112,18 +152,18 @@ export default function NightStepCard({
 
           {/* ── Renard : Affichage résultat Flair ── */}
           {currentStepInfo.id === 'renard' && (
-            <div style={{ background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+            <div className="step-info step-info--fox">
               {foxPowerLost ? (
-                <p style={{ margin: 0, color: '#ff6b6b', fontWeight: 'bold' }}>❌ Pouvoir perdu (Flair épuisé par une erreur passée).</p>
+                <p className="step-info__danger">❌ Pouvoir perdu (Flair épuisé par une erreur passée).</p>
               ) : nightSelection.length === 3 ? (
                 <>
-                  <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem' }}>🔍 Groupe analysé : <strong>{nightSelection.map(id => players.find(p => p.id === id)?.name).join(', ')}</strong></p>
-                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: nightActions.foxHasWolf ? 'var(--color-danger)' : '#4dff88' }}>
+                  <p>🔍 Groupe analysé : <strong>{nightSelection.map(id => players.find(p => p.id === id)?.name).join(', ')}</strong></p>
+                  <p className={`step-info__verdict ${nightActions.foxHasWolf ? 'is-wolf' : 'is-clear'}`}>
                     {nightActions.foxHasWolf ? '🐺 OUI (Signe affirmatif)' : '✅ NON (Signe négatif)'}
                   </p>
                 </>
               ) : (
-                <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Sélectionnez un joueur pour analyser son groupe de 3 (lui + ses 2 voisins vivants).</p>
+                <p className="step-info__muted">Sélectionnez un joueur pour analyser son groupe de 3 (lui + ses 2 voisins vivants).</p>
               )}
             </div>
           )}
@@ -249,25 +289,25 @@ export default function NightStepCard({
 
           {/* ── Amoureux : révélation du couple ── */}
           {currentStepInfo.id === 'amoureux' && (
-            <div style={{ background: 'rgba(255,100,150,0.12)', border: '1px solid rgba(255,100,150,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
+            <div className="step-info step-info--love">
               {lovers.length === 2 ? (
                 <>
-                  <p style={{ margin: '0 0 6px 0', fontSize: '1rem' }}>💞 Les Amoureux sont :</p>
-                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem', color: '#ff8fab' }}>
+                  <p>💞 Les Amoureux sont :</p>
+                  <p className="step-info__highlight">
                     {players.find(p => p.id === lovers[0])?.name} &amp; {players.find(p => p.id === lovers[1])?.name}
                   </p>
-                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', opacity: 0.7 }}>Révélez-leur mutuellement leur partenaire.</p>
+                  <p className="step-info__muted">Révélez-leur mutuellement leur partenaire.</p>
                 </>
               ) : (
-                <p style={{ margin: 0, color: 'var(--color-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>⏳ En attente que Cupidon désigne les amoureux...</p>
+                <p className="step-info__muted">⏳ En attente que Cupidon désigne les amoureux...</p>
               )}
             </div>
           )}
 
           {/* ── Sœurs : info reconnaissance ── */}
           {currentStepInfo.id === 'soeurs' && (
-            <div style={{ background: 'rgba(180,130,255,0.1)', border: '1px solid rgba(180,130,255,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
+            <div className="step-info">
+              <p>
                 👯 Les deux <strong>Sœurs</strong> ({players.filter(p => p.roleId === 'soeurs' && p.isAlive).map(p => p.name).join(' & ') || '—'})
                 ouvrent les yeux et se reconnaissent.</p>
             </div>
@@ -275,8 +315,8 @@ export default function NightStepCard({
 
           {/* ── Montreur d'Ours : info position ── */}
           {currentStepInfo.id === 'montreur-ours' && (
-            <div style={{ background: 'rgba(180,120,60,0.12)', border: '1px solid rgba(180,120,60,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
+            <div className="step-info">
+              <p>
                 🐻 Le <strong>Montreur d'Ours</strong> ({players.find(p => p.roleId === 'montreur-ours' && p.isAlive)?.name || '—'}) repère sa position.
                 Son ours grognera chaque matin si l'un de ses voisins est Loup-Garou.</p>
             </div>
@@ -284,14 +324,14 @@ export default function NightStepCard({
 
           {/* ── Joueurs charmés : reconnaissance mutuelle ── */}
           {currentStepInfo.id === 'joueurs-charmes' && (
-            <div style={{ background: 'rgba(100,200,255,0.1)', border: '1px solid rgba(100,200,255,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, textAlign: 'left' }}>
-              <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>🎶 Joueurs charmés ({players.filter(p => charmedIds.includes(p.id) && p.isAlive).length}) :</p>
-              <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '0.9rem', opacity: 0.9 }}>
+            <div className="step-info step-info--left">
+              <p className="step-info__title">🎶 Joueurs charmés ({players.filter(p => charmedIds.includes(p.id) && p.isAlive).length}) :</p>
+              <ul className="step-info__list">
                 {players.filter(p => charmedIds.includes(p.id) && p.isAlive).map(p => (
-                  <li key={p.id}>{ROLE_BY_ID[p.roleId]?.icon} {p.name}</li>
+                  <li key={p.id}>{p.name}</li>
                 ))}
               </ul>
-              <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', opacity: 0.6 }}>Ils ouvrent les yeux, se reconnaissent, et se rendorment sans parler.</p>
+              <p className="step-info__muted">Ils ouvrent les yeux, se reconnaissent, et se rendorment sans parler.</p>
             </div>
           )}
 

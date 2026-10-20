@@ -10,6 +10,7 @@ export const TEAM_CLASS = {
 
 /* Phase labels & icons */
 export const PHASE_META = {
+  preparation:   { label: 'Préparation',      icon: '🃏' },
   night:         { label: 'Phase de Nuit',    icon: '🌙' },
   day:           { label: 'Phase de Jour',     icon: '☀️' },
 
@@ -39,7 +40,7 @@ export const NIGHT_ORDER = [
 
 export const getGuidanceMessage = (phase, currentNightStepId, hasChasseurPending, hasSuccessionPending, isVoting, tribunalLocked) => {
   if (phase === 'preparation') {
-    return "Mettez en place les joueurs dans le cercle. Double-cliquez pour échanger deux positions. Quand le cercle est prêt, désignez le Capitaine et lancez la nuit.";
+    return "Placez les joueurs comme autour de la table : touchez un joueur puis un autre pour échanger leurs places. Désignez ensuite le Capitaine et lancez la première nuit.";
   }
   if (hasChasseurPending) {
     return "Le Chasseur a été éliminé ! Attendez qu'il désigne sa cible et tire son dernier coup de fusil.";

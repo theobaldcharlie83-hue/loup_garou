@@ -23,73 +23,91 @@ html {
 
 body {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Tablette : pas de surlignage bleu au toucher, pas de zoom au double-tap
+     sur les contrôles (supprime aussi le délai de 300 ms). */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ---------- 2. TOKENS DE COULEUR (extrait du design Stitch) ---------- */
+/* ---------- 2. TOKENS DE COULEUR ----------
+   Direction artistique tirée du livret « Best Of » : nuit bleu-ardoise,
+   parchemin, rouille, ocre et silhouettes d'encre. Thème sombre conservé :
+   l'app est utilisée de nuit, dans une pièce peu éclairée. */
 :root {
-  /* Surfaces */
-  --color-surface:               #0e0e35;
-  --color-surface-dim:           #0e0e35;
-  --color-surface-bright:        #34355d;
-  --color-surface-container-lowest: #08082f;
-  --color-surface-container-low:    #16173d;
-  --color-surface-container:        #1a1b41;
-  --color-surface-container-high:   #25264c;
-  --color-surface-container-highest: #303158;
+  /* Matières du livret */
+  --color-parchment:            #f0d9a8;
+  --color-parchment-dark:       #d8bb82;
+  --color-ink:                  #2b1d14;
+  --color-rust:                 #a83224;
+  --color-rust-bright:          #d2513c;
+  --color-ochre:                #e39a35;
+  --color-forest:               #3f6b45;
+  --color-moon:                 #cfe0f2;
 
-  /* Primary — Violet Grimoire */
-  --color-primary:              #e8b4f9;
-  --color-on-primary:           #471e58;
-  --color-primary-container:    #340a46;
-  --color-on-primary-container: #a476b5;
+  /* Surfaces (nuit) */
+  --color-surface:               #121720;
+  --color-surface-dim:           #121720;
+  --color-surface-bright:        #374253;
+  --color-surface-container-lowest: #0b0e13;
+  --color-surface-container-low:    #161c26;
+  --color-surface-container:        #1c2430;
+  --color-surface-container-high:   #252f3d;
+  --color-surface-container-highest: #2f3a4a;
 
-  /* Secondary — Ocre / Ambre (actions jour) */
-  --color-secondary:            #ffb86b;
-  --color-on-secondary:         #492900;
-  --color-secondary-container:  #ed9000;
+  /* Primary — parchemin / clair de lune (accent de nuit) */
+  --color-primary:              #f0d9a8;
+  --color-on-primary:           #2b1d14;
+  --color-primary-container:    #4a3520;
+  --color-on-primary-container: #f0d9a8;
 
-  /* Tertiary — Or victoire */
-  --color-tertiary:             #e9c400;
-  --color-on-tertiary:          #3a3000;
-  --color-tertiary-container:   #c9a900;
+  /* Secondary — ocre / torche (actions de jour) */
+  --color-secondary:            #e39a35;
+  --color-on-secondary:         #2a1500;
+  --color-secondary-container:  #b86d14;
+
+  /* Tertiary — or */
+  --color-tertiary:             #f2c14e;
+  --color-on-tertiary:          #2e2200;
+  --color-tertiary-container:   #c99a24;
 
   /* Textes */
-  --color-on-surface:           #e1e0ff;
-  --color-on-surface-variant:   #c8c5cf;
-  --color-on-background:        #e1e0ff;
+  --color-on-surface:           #f3e8d2;
+  --color-on-surface-variant:   #c4b59b;
+  --color-on-background:        #f3e8d2;
 
   /* Erreur */
-  --color-error:                #ffb4ab;
-  --color-error-container:      #93000a;
+  --color-error:                #ff8f7e;
+  --color-error-container:      #5c1410;
 
   /* Contours */
-  --color-outline:              #918f99;
-  --color-outline-variant:      #47464e;
+  --color-outline:              #8c806c;
+  --color-outline-variant:      #3d4655;
 
   /* Inverses */
-  --color-inverse-surface:      #e1e0ff;
-  --color-inverse-on-surface:   #2b2d53;
-  --color-inverse-primary:      #794d8a;
-  --color-surface-tint:         #e8b4f9;
+  --color-inverse-surface:      #f3e8d2;
+  --color-inverse-on-surface:   #2b1d14;
+  --color-inverse-primary:      #a83224;
+  --color-surface-tint:         #f0d9a8;
 
-  /* Sémantiques additionnelles (audit UI : remplacer les couleurs
-     hexadécimales inline dispersées dans le Dashboard) */
-  --color-danger:               #ff4d4d; /* exécution, élimination, potion épuisée */
-  --color-danger-container:     #2d0a0a; /* fond des panneaux d'issue de vote */
-  --color-success:              #4caf50; /* score de confiance positif */
-  --color-gold:                 #ffd700; /* thème Capitaine */
-  --color-accent-ai:            #a78bfa; /* suggestions et actions IA */
-  --color-muted:                #aaa;    /* texte secondaire discret */
-  --color-input-bg:             #1a0f41; /* fond des champs de saisie sur fond sombre */
+  /* Sémantiques */
+  --color-danger:               #e0503c;
+  --color-danger-container:     #2a0f0b;
+  --color-success:              #6fbf73;
+  --color-gold:                 #f2c14e;
+  --color-accent-ai:            #8fb4dd;
+  --color-muted:                #a8a090;
+  --color-input-bg:             #0f141b;
 }
 
 /* ---------- 3. TYPOGRAPHIE ---------- */
 :root {
   /* Famille */
+  --font-display:  'IM Fell English SC', 'Newsreader', Georgia, serif; /* titres « gravure » du livret */
   --font-headline: 'Newsreader', Georgia, serif;
   --font-body:     'Plus Jakarta Sans', system-ui, sans-serif;
 
@@ -103,7 +121,8 @@ body {
   --text-title-lg:   clamp(1rem, 1.8vw, 1.25rem);
   --text-title-md:   clamp(0.875rem, 1.4vw, 1rem);
   --text-body-lg:    clamp(0.875rem, 1.2vw, 1rem);
-  --text-body-md:    clamp(0.75rem, 1vw, 0.875rem);
+  --text-body-md:    clamp(0.8125rem, 1vw, 0.9375rem);
+  --text-body-sm:    clamp(0.75rem, 0.9vw, 0.875rem);
   --text-label-lg:   clamp(0.75rem, 1vw, 0.875rem);
   --text-label-md:   clamp(0.625rem, 0.9vw, 0.75rem);
 }
@@ -127,14 +146,15 @@ body {
   --radius-md:   0.5rem;    /* 8px */
   --radius-lg:   1rem;      /* 16px */
   --radius-xl:   1.5rem;    /* 24px */
+  --radius-2xl:  2rem;      /* 32px */
   --radius-full: 9999px;
 }
 
 /* ---------- 6. OMBRES & GLASSMORPHISM ---------- */
 :root {
-  --shadow-ambient:  0 8px 32px rgba(14, 14, 53, 0.12);
-  --shadow-floating: 0 16px 48px rgba(14, 14, 53, 0.18);
-  --glow-primary:    0 0 20px rgba(232, 180, 249, 0.2);
+  --shadow-ambient:  0 8px 32px rgba(11, 14, 19, 0.12);
+  --shadow-floating: 0 16px 48px rgba(11, 14, 19, 0.18);
+  --glow-primary:    0 0 20px rgba(240, 217, 168, 0.2);
   --glow-secondary:  0 0 16px rgba(255, 184, 107, 0.25);
   --glow-tertiary:   0 0 24px rgba(233, 196, 0, 0.3);
   --backdrop-blur:   blur(14px);
@@ -154,8 +174,8 @@ body {
 }
 
 @keyframes pulseMagic {
-  0%, 100% { box-shadow: var(--glow-primary); }
-  50%       { box-shadow: 0 0 32px rgba(232, 180, 249, 0.45); }
+  0%, 100% { box-shadow: 0 0 14px rgba(210, 81, 60, 0.25); }
+  50%       { box-shadow: 0 0 30px rgba(210, 81, 60, 0.5); }
 }
 
 @keyframes shimmer {
@@ -182,6 +202,7 @@ body {
 .app-container {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -212,8 +233,9 @@ body {
   border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
-  color: var(--color-on-primary);
+  background: linear-gradient(180deg, var(--color-rust-bright), var(--color-rust));
+  color: #fff6e6;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   font-family: var(--font-body);
   font-size: var(--text-title-md);
   font-weight: 700;
@@ -222,7 +244,7 @@ body {
   animation: pulseMagic 3s ease-in-out infinite;
   min-height: 44px;
 }
-.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 0 28px rgba(232, 180, 249, 0.5); }
+.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 0 28px rgba(240, 217, 168, 0.5); }
 .btn-primary:active { transform: scale(0.97); opacity: 0.85; }
 
 /* --- Bouton Secondaire (actions Jour) --- */
@@ -264,16 +286,16 @@ body {
   transition: background var(--anim-fast), opacity var(--anim-fast);
   min-height: 44px;
 }
-.btn-tertiary:hover  { background: rgba(232, 180, 249, 0.08); }
+.btn-tertiary:hover  { background: rgba(240, 217, 168, 0.08); }
 .btn-tertiary:active { opacity: 0.7; }
 
 /* --- Carte Glassmorphique --- */
 .card-glass {
-  background: rgba(52, 53, 93, 0.6);
+  background: rgba(37, 47, 61, 0.6);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(71, 70, 78, 0.15);
+  border: 1px solid rgba(140, 128, 108, 0.15);
   box-shadow: var(--shadow-ambient);
   padding: var(--space-6);
 }
@@ -341,3 +363,113 @@ body {
 
 .fade-in { animation: fadeIn var(--anim-normal) ease-out forwards; }
 .float-up { animation: floatUp var(--anim-slow) ease-out forwards; }
+
+
+/* ---------- 11. MATIÈRES DU LIVRET (composants partagés) ---------- */
+
+/* Panneau parchemin : encadrés du livret de règles */
+.parchment-panel {
+  background-color: var(--color-parchment);
+  background-image:
+    linear-gradient(rgba(255, 244, 220, 0.25), rgba(120, 80, 30, 0.12)),
+    url('./assets/decor/parchment.webp');
+  background-size: auto, cover;
+  color: var(--color-ink);
+  border-radius: 18px;
+  border: 1px solid rgba(90, 55, 20, 0.45);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 245, 225, 0.35),
+    inset 0 0 40px rgba(120, 70, 20, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.65);
+}
+.parchment-panel strong { color: var(--color-rust); }
+
+/* Bouton « encre » (action principale sur parchemin ou nuit) */
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: linear-gradient(180deg, var(--color-rust-bright), var(--color-rust));
+  color: #fff6e6;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(120, 30, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform var(--anim-fast), filter var(--anim-fast), opacity var(--anim-fast);
+}
+.btn-ink:active:not(:disabled) { transform: scale(0.97); }
+.btn-ink:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* Bouton discret (bordure encre, s'adapte au fond) */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: background var(--anim-fast), opacity var(--anim-fast);
+}
+.btn-ghost:active { background: rgba(127, 127, 127, 0.15); }
+
+/* Silhouette du village (bas des écrans) — masque coloré via CSS */
+.village-silhouette {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(60px, 13vh, 130px);
+  background: #07090d;
+  -webkit-mask: url('./assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+          mask: url('./assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+  pointer-events: none;
+}
+
+@keyframes uiFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------- 12. ÉCRAN D'ERREUR ---------- */
+.error-screen {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-surface);
+}
+.error-card {
+  max-width: 560px;
+  padding: 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.error-card h1 { font-family: var(--font-display); font-size: 2rem; }
+.error-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.error-details { text-align: left; font-size: 0.85rem; opacity: 0.8; }
+.error-details code { display: block; margin: 8px 0; white-space: pre-wrap; word-break: break-word; }
+.error-reset { background: none; border: none; color: var(--color-rust); text-decoration: underline; cursor: pointer; padding: 8px 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}

@@ -15,7 +15,7 @@ export default function CaptainModal({ show, onClose }) {
         <p>
           Avant de plonger le village dans les ténèbres,<br />
           vous devez désigner un <strong>Capitaine</strong>.<br />
-          Cliquez sur un joueur, puis sur <em>"Désigner Capitaine"</em>.
+          Touchez un joueur, puis <em>« Désigner Capitaine »</em>.
         </p>
         <div className="grimoire-modal-actions">
           <button className="grimoire-modal-btn confirm" onClick={onClose}>

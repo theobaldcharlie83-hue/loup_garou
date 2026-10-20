@@ -1,0 +1,41 @@
+.role-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Jeton complet : forme « tourbillon » du jeu, posé sur un fond parchemin */
+.role-token--token {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 18%;
+}
+
+/* Médaillon : on zoome sur le disque central illustré */
+.role-token--medallion {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-size: 205%;
+}
+
+.role-token__glyph {
+  font-size: 1.35em;
+  line-height: 1;
+  /* L'icône devient une silhouette d'encre sur le médaillon parchemin */
+  filter: brightness(0) drop-shadow(0 1px 0 rgba(255, 240, 210, 0.4));
+}
+.role-token--token .role-token__glyph { font-size: 3em; }
+.role-token--medallion .role-token__glyph { font-size: 1.1em; }
+
+.role-token--unknown {
+  background: var(--color-surface-container-high);
+  font-size: 1.2em;
+}

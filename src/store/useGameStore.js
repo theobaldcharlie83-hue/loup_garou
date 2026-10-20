@@ -64,6 +64,23 @@ function shuffle(arr) {
   return a
 }
 
+/* ─── UTILITAIRE : renommage dans le journal ───────────────────
+   Remplace les occurrences « mot entier » d'un nom. N'utilise PAS de
+   lookbehind (?<!…) : non supporté par Safari < 16.4, il faisait échouer
+   le renommage sur les iPad plus anciens. On capture le caractère qui
+   précède à la place. */
+const NAME_CHAR = 'A-Za-z0-9À-ÖØ-öø-ÿ\\-'
+export function replaceNameInJournal(journal, oldName, newName) {
+  if (!oldName || oldName === newName) return journal
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`(^|[^${NAME_CHAR}])${escaped}(?![${NAME_CHAR}])`, 'g')
+  return journal.map(entry =>
+    entry.text && entry.text.includes(oldName)
+      ? { ...entry, text: entry.text.replace(re, (_, before) => before + newName) }
+      : entry
+  )
+}
+
 /* ─── UTILITAIRES DE CAMP ────────────────────────────────────── */
 export const getPlayerTeam = (player, players, state) => {
   if (!player) return 'village';
@@ -101,7 +118,7 @@ const initialState = {
   // player shape: { id, name, isPlush, roleId, isAlive, couplePartnerId? }
 
   // ── Phase de jeu
-  phase:     'setup', // 'setup' | 'night' | 'day' | 'interrogation'
+  phase:     'setup', // 'setup' | 'preparation' | 'night' | 'day'
   dayNumber: 1,
 
   // ── Journal des événements
@@ -220,6 +237,10 @@ export const useGameStore = create(persist((set, get) => ({
       // 1. Update players array
       const oldName = s.players.find(p => p.id === playerId)?.name || '';
       if (!oldName || oldName === cleanName) return {};
+      // Refuse un nom déjà porté par un autre joueur : la mise à jour du journal
+      // (par remplacement de texte) deviendrait ambiguë.
+      const lower = cleanName.toLocaleLowerCase('fr');
+      if (s.players.some(p => p.id !== playerId && p.name.toLocaleLowerCase('fr') === lower)) return {};
 
       const newPlayers = s.players.map(p =>
         p.id === playerId ? { ...p, name: cleanName } : p
@@ -241,19 +262,7 @@ export const useGameStore = create(persist((set, get) => ({
       }
 
       // 3. Update journal entries (replace historical occurrences of oldName with cleanName)
-      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const escapedOldName = escapeRegExp(oldName);
-      const oldNameRegex = new RegExp(`(?<![a-zA-Z0-9À-ÿ-])${escapedOldName}(?![a-zA-Z0-9À-ÿ-])`, 'g');
-
-      const newJournal = s.journal.map(entry => {
-        if (entry.text && entry.text.includes(oldName)) {
-          return {
-            ...entry,
-            text: entry.text.replace(oldNameRegex, cleanName)
-          };
-        }
-        return entry;
-      });
+      const newJournal = replaceNameInJournal(s.journal, oldName, cleanName);
 
       return {
         players: newPlayers,
@@ -672,9 +681,6 @@ export const useGameStore = create(persist((set, get) => ({
   },
 
   /* ── Actions de Nuit & Pouvoirs ─────────────────────────────── */
-  setNightAction: (key, val) =>
-    set((s) => ({ nightActions: { ...s.nightActions, [key]: val } })),
-
   pushToJournal: (text, type = 'event') => set((s) => ({
     journal: [...s.journal, { id: uid(), timestamp: new Date(), text, type }]
   })),
@@ -942,21 +948,6 @@ export const useGameStore = create(persist((set, get) => ({
     }),
 
 
-
-  /* ── Journal ────────────────────────────────────────────────── */
-  addJournalEntry: (text, type = 'event') =>
-    set((s) => ({
-      journal: [
-        ...s.journal,
-        { id: uid(), timestamp: new Date(), text, type },
-      ],
-    })),
-
-  /* ── Sorcière ───────────────────────────────────────────────── */
-  useWitchPotion: (type) =>
-    set((s) => ({
-      witchPotions: { ...s.witchPotions, [type]: false },
-    })),
 
   /* ── Sauvegarde ─────────────────────────────────────────────── */
   // Retourne true en cas de succès, false en cas d'échec (ex. quota localStorage

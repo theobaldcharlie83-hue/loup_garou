@@ -5,10 +5,15 @@
 /* ─── Layout principal ─────────────────────────────────────── */
 .setup-screen {
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: clamp(230px, 24vw, 290px) 1fr clamp(230px, 24vw, 290px);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  background: var(--color-surface);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(240, 217, 168, 0.07), transparent 70%),
+    var(--color-surface);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .setup-sidebar {
@@ -17,7 +22,7 @@
   gap: var(--space-4);
   padding: var(--space-5) var(--space-5) var(--space-4);
   background: var(--color-surface-container-low);
-  border-right: 1px solid rgba(71, 70, 78, 0.15);
+  border-right: 1px solid rgba(140, 128, 108, 0.15);
   overflow: hidden;
 }
 
@@ -27,7 +32,7 @@
   gap: var(--space-4);
   padding: var(--space-5) var(--space-5) var(--space-4);
   background: var(--color-surface-container-low);
-  border-left: 1px solid rgba(71, 70, 78, 0.15);
+  border-left: 1px solid rgba(140, 128, 108, 0.15);
   overflow: hidden;
 }
 
@@ -47,11 +52,12 @@
   flex-shrink: 0;
 }
 .setup-sidebar__title {
-  font-family: var(--font-headline);
+  font-family: var(--font-display);
   font-size: var(--text-headline-lg);
-  font-weight: 700;
-  color: var(--color-secondary);
-  line-height: 1.15;
+  font-weight: 400;
+  color: var(--color-parchment);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
 }
 .setup-sidebar__subtitle {
   margin-top: var(--space-1);
@@ -80,11 +86,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border-bottom: 1px solid rgba(71, 70, 78, 0.1);
+  border-bottom: 1px solid rgba(140, 128, 108, 0.1);
   flex-shrink: 0;
 }
 .player-block__top {
   display: flex;
+  flex-wrap: wrap; /* les compteurs passent sous le titre si la colonne est étroite */
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
@@ -109,8 +116,8 @@
   flex-shrink: 0;
 }
 .counter-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-outline-variant);
   cursor: pointer;
@@ -184,25 +191,38 @@
 
 .name-input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  padding-right: 2.5rem; /* Espace pour la croix */
+  padding: 10px var(--space-3);
+  padding-right: 46px; /* Espace pour la croix */
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(71, 70, 78, 0.15); /* ghost border */
+  border: 1px solid rgba(140, 128, 108, 0.15); /* ghost border */
   background: var(--color-surface-container-lowest);
   color: var(--color-on-surface);
   font-family: var(--font-body);
-  font-size: var(--text-body-md);
+  /* 16px minimum : en dessous, iOS zoome sur le champ et, l'écran étant en
+     overflow:hidden, l'interface restait décalée après la saisie. */
+  font-size: 16px;
   outline: none;
   transition:
     border-color var(--anim-fast),
     box-shadow   var(--anim-fast),
     background   var(--anim-fast);
-  min-height: 36px;
+  min-height: 46px;
+  scroll-margin: 80px;
+}
+.name-input.duplicate {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 2px rgba(224, 80, 60, 0.2);
+}
+.name-input-error {
+  font-size: 0.75rem;
+  color: var(--color-error);
+  font-weight: 600;
+  padding-left: var(--space-1);
 }
 .name-input::placeholder { color: var(--color-on-surface-variant); opacity: 0.5; }
 .name-input:focus {
-  border-color: rgba(232, 180, 249, 0.5);
-  box-shadow: 0 0 0 2px rgba(232, 180, 249, 0.12);
+  border-color: rgba(240, 217, 168, 0.5);
+  box-shadow: 0 0 0 2px rgba(240, 217, 168, 0.12);
   background: var(--color-surface-container-low);
 }
 /* Peluche : couleur accentuée secondaire */
@@ -219,16 +239,16 @@
 
 .btn-clear-input {
   position: absolute;
-  right: var(--space-2);
-  background: transparent;
+  right: 4px;
+  background: rgba(255, 255, 255, 0.06);
   border: none;
-  color: var(--color-error);
-  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  font-size: 0.95rem;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  opacity: 0.4;
+  opacity: 0.8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -301,6 +321,10 @@
 
 .roles-zone-header {
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .btn-choix-rapide {
@@ -322,10 +346,10 @@
   transform: translateY(-1px);
 }
 .roles-zone-header h2 {
-  font-family: var(--font-headline);
-  font-size: var(--text-headline-md);
-  font-weight: 600;
-  color: var(--color-on-surface);
+  font-family: var(--font-display);
+  font-size: var(--text-headline-lg);
+  font-weight: 400;
+  color: var(--color-parchment);
 }
 .roles-zone-header p {
   font-size: var(--text-body-md);
@@ -335,7 +359,8 @@
 
 /* Titres de sections d'équipe */
 .roles-section-title {
-  font-family: var(--font-headline);
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
   font-size: var(--text-title-lg);
   font-weight: 600;
   margin-bottom: var(--space-3);
@@ -343,7 +368,7 @@
   align-items: center;
   gap: var(--space-2);
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid rgba(71, 70, 78, 0.12);
+  border-bottom: 1px solid rgba(140, 128, 108, 0.12);
 }
 .roles-section-title.team-loup      { color: var(--color-error); }
 .roles-section-title.team-village   { color: var(--color-secondary); }
@@ -353,7 +378,7 @@
 /* Grille responsive */
 .roles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--space-3);
 }
 
@@ -372,16 +397,42 @@
     box-shadow   var(--anim-fast);
   position: relative;
 }
+.role-card { border: 1px solid transparent; }
 .role-card.selected {
   background: var(--color-surface-container-highest);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-ambient);
+  border-color: rgba(240, 217, 168, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(240, 217, 168, 0.1);
 }
 
-.role-card__icon {
-  font-size: 2rem;
-  line-height: 1;
-  user-select: none;
+/* Jeton illustré du rôle (livret) */
+.role-card__art {
+  position: relative;
+  width: 92px;
+  transition: filter var(--anim-normal), transform var(--anim-normal);
+  filter: saturate(0.55) brightness(0.8);
+}
+.role-card.selected .role-card__art {
+  filter: none;
+  transform: scale(1.04);
+}
+.role-card__count {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  background: var(--color-rust);
+  color: #fff6e6;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 2px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.role-card__hint {
+  font-size: 0.7rem;
+  color: var(--color-on-surface-variant);
+  margin-top: 2px;
+  text-align: center;
+  font-style: italic;
 }
 .role-card__name {
   font-size: var(--text-label-lg);
@@ -407,8 +458,8 @@
   margin-top: var(--space-1);
 }
 .qty-btn {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-outline-variant);
   background: var(--color-surface-container-high);
@@ -437,6 +488,7 @@
   text-align: center;
   line-height: 1;
 }
+.qty-value { color: var(--color-on-surface-variant); }
 .qty-value.active { color: var(--color-tertiary); }
 
 /* ── Modale de Reprise des parties ────────────────── */
@@ -450,7 +502,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.25s ease-out;
+  animation: uiFadeIn 0.25s ease-out;
 }
 
 .setup-modal {
@@ -463,7 +515,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: setupScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .setup-modal-header {
@@ -523,7 +575,7 @@
 }
 .save-item-row:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(167, 139, 250, 0.2);
+  border-color: rgba(143, 180, 221, 0.2);
 }
 
 .save-item-info {
@@ -537,7 +589,7 @@
 .save-item-name {
   font-size: var(--text-body-md);
   font-weight: 500;
-  color: #e2dcfc;
+  color: #f3e8d2;
 }
 
 .save-item-actions {
@@ -578,17 +630,19 @@
   align-items: center;
   justify-content: center;
 }
+.btn-delete-save.confirm {
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 12px;
+}
 .btn-delete-save:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
+@keyframes setupScaleIn {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
@@ -608,7 +662,7 @@
 /* ─── Tablette (640px – 1023px) — 3 colonnes ajustees ──────── */
 @media (min-width: 640px) and (max-width: 1023px) {
   .setup-screen {
-    grid-template-columns: minmax(190px, 230px) 1fr minmax(190px, 230px);
+    grid-template-columns: minmax(220px, 250px) 1fr minmax(220px, 250px);
   }
 
   .setup-sidebar,
@@ -653,8 +707,10 @@
     margin-top: 4px;
   }
 
-  .counter-btn { width: 40px; height: 40px; }
-  .qty-btn { width: 36px; height: 36px; font-size: 1rem; }
+  .counter-btn { width: 44px; height: 44px; }
+  .qty-btn { width: 40px; height: 40px; font-size: 1rem; }
+  .roles-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .role-card__art { width: 76px; }
 }
 
 /* ─── Mobile (< 640px) — 3 colonnes compactes ───────────────── */
@@ -738,12 +794,13 @@
 
   .name-input-label { font-size: 0.6rem; }
   .name-input {
-    font-size: 0.72rem;
-    padding: 3px 6px;
-    padding-right: 24px;
-    min-height: 28px;
+    font-size: 16px; /* jamais < 16px (zoom iOS) */
+    padding: 6px 8px;
+    padding-right: 34px;
+    min-height: 40px;
   }
-  .btn-clear-input { width: 20px; height: 20px; font-size: 0.6rem; }
+  .btn-clear-input { width: 30px; height: 30px; font-size: 0.75rem; }
+  .role-card__art { width: 44px; }
 
   .setup-summary {
     font-size: 0.65rem;
@@ -784,7 +841,6 @@
   }
 
   .role-card { padding: var(--space-1); gap: 3px; }
-  .role-card__icon { font-size: 1.1rem; }
   .role-card__name { font-size: 0.58rem; min-height: unset; line-height: 1.1; }
   .role-card__max { display: none; }
   .role-card__qty { gap: 2px; margin-top: 0; }

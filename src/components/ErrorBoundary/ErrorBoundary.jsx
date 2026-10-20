@@ -1,8 +1,15 @@
 import React from 'react'
 
+const AUTOSAVE_KEY = 'loup_garou_autosave'
+
 /**
- * Composant ErrorBoundary pour capturer les erreurs de rendu React
- * et afficher un message utile au MJ au lieu d'un écran blanc.
+ * Capture les erreurs de rendu et propose une reprise SANS perdre la partie :
+ *  1. « Reprendre » : ré-affiche l'écran (la partie est toujours en mémoire) ;
+ *  2. « Retour à l'accueil » : écran de configuration, la partie en cours reste
+ *     accessible via « Retourner à la partie en cours » ;
+ *  3. « Recharger » : relance l'app (l'autosave restaure la partie) ;
+ *  4. dernier recours : effacer la partie en cours (les sauvegardes nommées
+ *     sont conservées), utile si l'état enregistré lui-même est corrompu.
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -11,70 +18,48 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Met à jour l'état pour que le prochain rendu affiche l'UI de secours.
     return { hasError: true, error }
   }
 
   componentDidCatch(error, errorInfo) {
-    // Vous pouvez aussi enregistrer l'erreur dans un service de rapport d'erreurs
-    console.error("ErrorBoundary a capturé une erreur :", error, errorInfo)
+    console.error('ErrorBoundary a capturé une erreur :', error, errorInfo)
+  }
+
+  retry = () => this.setState({ hasError: false, error: null })
+
+  goHome = () => {
+    window.location.hash = '#/'
+    this.retry()
+  }
+
+  hardReset = () => {
+    if (!window.confirm('Effacer la partie en cours ? Les parties sauvegardées seront conservées.')) return
+    try { localStorage.removeItem(AUTOSAVE_KEY) } catch { /* stockage indisponible */ }
+    window.location.hash = '#/'
+    window.location.reload()
   }
 
   render() {
-    if (this.state.hasError) {
-      // UI de secours personnalisée
-      return (
-        <div style={{
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2rem',
-          textAlign: 'center',
-          backgroundColor: '#0e0e35',
-          color: '#e8b4f9',
-          fontFamily: 'sans-serif'
-        }}>
-          <h1 style={{ fontSize: '3rem' }}>🔮 Oups...</h1>
-          <p style={{ fontSize: '1.2rem', maxWidth: '600px' }}>
-            Le Grimoire a rencontré une perturbation magique. 
-            Une erreur s'est produite lors de l'affichage de l'application.
-          </p>
-          <div style={{
-            marginTop: '2rem',
-            padding: '1rem',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '8px',
-            textAlign: 'left',
-            fontSize: '0.9rem',
-            color: '#ffb4ab',
-            maxWidth: '90%',
-            overflow: 'auto',
-            border: '1px solid #ffb4ab'
-          }}>
-            <strong>Erreur :</strong> {this.state.error?.toString()}
-          </div>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              marginTop: '2rem',
-              padding: '12px 24px',
-              borderRadius: '24px',
-              border: 'none',
-              background: '#e8b4f9',
-              color: '#471e58',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
-            Tenter de recharger le Grimoire
-          </button>
-        </div>
-      )
-    }
+    if (!this.state.hasError) return this.props.children
 
-    return this.props.children
+    return (
+      <div className="error-screen" role="alert">
+        <div className="error-card parchment-panel">
+          <h1>Le grimoire s'est refermé…</h1>
+          <p>Un imprévu a interrompu l'affichage. Votre partie est conservée : essayez de reprendre.</p>
+          <div className="error-actions">
+            <button className="btn-ink" onClick={this.retry}>Reprendre</button>
+            <button className="btn-ghost" onClick={this.goHome}>Retour à l'accueil</button>
+            <button className="btn-ghost" onClick={() => window.location.reload()}>Recharger</button>
+          </div>
+          <details className="error-details">
+            <summary>Détails techniques</summary>
+            <code>{this.state.error?.toString()}</code>
+            <button className="error-reset" onClick={this.hardReset}>Effacer la partie en cours (dernier recours)</button>
+          </details>
+        </div>
+      </div>
+    )
   }
 }
 

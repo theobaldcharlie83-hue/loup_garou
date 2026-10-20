@@ -17,10 +17,14 @@ export default function TribunalPanel({
   setHighlightedIds, handlePhaseToggle,
 }) {
   const {
-    phase, players, successionPendingForId, isVoting, setIsVoting,
+    phase, players, pendingInteractions, isVoting, setIsVoting,
     tribunalLocked, setTribunalLocked, dayVotes, condemnedPlayerId,
     corbeauTargetId, captainId, qaScoringData, eliminatePlayer,
   } = useGameStore()
+  // Une succession de Capitaine en attente masque la carte « Phase de Jour »
+  // (elle a sa propre modale plein écran).
+  const successionPendingForId = pendingInteractions?.[0]?.type === 'succession'
+    ? pendingInteractions[0].playerId : null
 
   return (
     <>
@@ -65,8 +69,7 @@ export default function TribunalPanel({
               <div key={human.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 'bold' }}>{human.name} vote :</span>
                 <select
-                  className="setup-input"
-                  style={{ padding: '5px', width: 150 }}
+                  className="vote-select"
                   value={dayVotes[human.id] || ''}
                   onChange={(e) => useGameStore.getState().setDayVotes({ ...dayVotes, [human.id]: e.target.value })}
                 >

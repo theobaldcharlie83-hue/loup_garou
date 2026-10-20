@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore, ROLE_BY_ID, isPlayerWolf } from '../../store/useGameStore'
 import { calculatePlushieVoteScores } from '../../services/scoringEngine'
 import { decideWitchAction } from '../../services/aiStrategies'
 import RulesModal from '../../components/RulesModal/RulesModal'
+import RoleReveal from '../../components/RoleReveal/RoleReveal'
+import RenameDialog from '../../components/RenameDialog/RenameDialog'
+import RoleToken from '../../components/RoleToken/RoleToken'
 import HunterModal from './components/HunterModal'
 import ScoringAuditModal from './components/ScoringAuditModal'
 import BearGrowlModal from './components/BearGrowlModal'
@@ -20,6 +23,7 @@ import PhaseTransitionOverlay from './components/PhaseTransitionOverlay'
 import { PHASE_META, NIGHT_ORDER, getGuidanceMessage } from './dashboardConstants'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import './DashboardScreen.css'
+import './DashboardTheme.css'
 
 export default function DashboardScreen() {
   const navigate  = useNavigate()
@@ -75,12 +79,9 @@ export default function DashboardScreen() {
   const [qaModalPlushId, setQaModalPlushId] = useState(null)
   const [witchIaUsedForThisStep, setWitchIaUsedThisStep] = useState(false) // Usage unique du bouton IA par tour
 
-  // ── States pour Renommage, Sauvegarde, Transitions, Modale Sorcière ──
-  const [editingPlayerId, setEditingPlayerId] = useState(null)
-  const [editSource, setEditSource] = useState(null) // 'sidebar' | 'avatar'
-  const [editNameValue, setEditNameValue] = useState('')
-  const editNameValueRef = useRef('') // ref pour éviter les closures stales dans onBlur
-  const renameInputRef = useRef(null)  // ref pour forcer le focus sur l'input de renommage
+  // ── States pour Renommage, Révélation de carte, Sauvegarde, Transitions, Sorcière ──
+  const [renamingId, setRenamingId] = useState(null)       // joueur en cours de renommage (boîte de dialogue)
+  const [revealRoleId, setRevealRoleId] = useState(null)   // carte affichée en plein écran
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
@@ -94,6 +95,7 @@ export default function DashboardScreen() {
   const [witchUseLife, setWitchUseLife] = useState(false)
   const [witchDeathTarget, setWitchDeathTarget] = useState('')
   const [showGuidanceBanner, setShowGuidanceBanner] = useState(true)
+  const [showGuidanceInJournal, setShowGuidanceInJournal] = useState(false) // consignes archivées masquées par défaut
 
   /* Redirect si partie non démarrée */
   useEffect(() => {
@@ -134,7 +136,11 @@ export default function DashboardScreen() {
   }, []);
 
   /* ── Overlay de Transition Jour/Nuit ───────────────────────── */
+  // Pas de transition à l'ouverture de l'écran (reprise / rechargement) : seulement
+  // lors d'un vrai changement de phase pendant la partie.
+  const isFirstPhaseRender = useRef(true)
   useEffect(() => {
+    if (isFirstPhaseRender.current) { isFirstPhaseRender.current = false; return; }
     if (phase === 'preparation') return;
 
     setTransitionPhase(phase);
@@ -142,7 +148,7 @@ export default function DashboardScreen() {
 
     const timer = setTimeout(() => {
       setIsTransitionActive(false);
-    }, 2500); // 2.5s fading animation
+    }, 1600); // fondu court (et touchable pour passer) : ne bloque pas le MJ
 
     return () => clearTimeout(timer);
   }, [phase, dayNumber]);
@@ -158,39 +164,22 @@ export default function DashboardScreen() {
     setRightCollapsed(collapsed)
   }, [phase]);
 
-  /* ── Helpers Renommage ─────────────────────────────────────── */
-  const startEditing = (player, source = 'sidebar') => {
-    editNameValueRef.current = player.name
-    setEditSource(source)
-    setEditingPlayerId(player.id)
-    setEditNameValue(player.name)
-  }
-
-  // Force le focus sur l'input dès qu'il apparaît (autoFocus ne marche pas dans les sidebars)
-  useEffect(() => {
-    if (editingPlayerId && renameInputRef.current) {
-      // setTimeout 0 pour laisser le DOM se mettre à jour avant de focus
-      const t = setTimeout(() => {
-        if (renameInputRef.current) {
-          renameInputRef.current.focus()
-          renameInputRef.current.select()
-        }
-      }, 0)
-      return () => clearTimeout(t)
+  /* ── Renommage (boîte de dialogue unique, pensée pour la tablette) ── */
+  const openRename = (player) => setRenamingId(player.id)
+  const closeRename = () => setRenamingId(null)
+  const confirmRename = (name) => {
+    const player = players.find(p => p.id === renamingId)
+    if (player && name !== player.name) {
+      useGameStore.getState().saveHistory()
+      renamePlayer(renamingId, name)
     }
-  }, [editingPlayerId])
-
-  const finishEditing = (playerId) => {
-    // Utilise la ref pour avoir la valeur la plus récente même après re-renders
-    const currentValue = editNameValueRef.current.trim()
-    const originalName = players.find(p => p.id === playerId)?.name
-    if (currentValue && originalName && currentValue !== originalName) {
-      renamePlayer(playerId, currentValue)
-    }
-    setEditingPlayerId(null)
-    setEditSource(null)
-    editNameValueRef.current = ''
+    setRenamingId(null)
   }
+  const renamingPlayer = players.find(p => p.id === renamingId) ?? null
+
+  /* ── Révélation plein écran de la carte d'un joueur ── */
+  const openReveal = (player) => { if (player?.roleId) setRevealRoleId(player.roleId) }
+  const closeReveal = useCallback(() => setRevealRoleId(null), [])
 
   /* Calcul dynamique de l'ellipse */
   useEffect(() => {
@@ -198,11 +187,14 @@ export default function DashboardScreen() {
       if (!circleRef.current) return
       const { width, height } = circleRef.current.getBoundingClientRect()
       const pad = 60
+      // Décalage vers le bas : laisse la place au bandeau de guidage en haut
+      // et aux noms/rôles affichés sous les avatars du bas.
+      const topReserve = 36
       setDims({
         cx: width  / 2,
-        cy: height / 2,
+        cy: height / 2 + topReserve / 2,
         rx: Math.max(40, width  / 2 - pad),
-        ry: Math.max(40, height / 2 - pad - 16),
+        ry: Math.max(40, height / 2 - pad - topReserve),
       })
     }
     compute()
@@ -252,12 +244,16 @@ export default function DashboardScreen() {
   }, [phase, players, hasShownBearGrowl]);
 
   // Automatisation du tir du Chasseur si c'est un PNJ (Doudou)
+  // Minuteries du tir automatique annulées si l'écran est quitté en cours d'animation
+  const hunterTimersRef = useRef([])
+  useEffect(() => () => hunterTimersRef.current.forEach(clearTimeout), [])
   useEffect(() => {
     if (chasseurPendingId) {
       const hunter = players.find(p => p.id === chasseurPendingId);
       if (hunter && hunter.isPlush && !isProcessingAction) {
         setIsProcessingAction(true);
-        setTimeout(() => {
+        const later = (fn, ms) => hunterTimersRef.current.push(setTimeout(fn, ms));
+        later(() => {
           const targets = players.filter(p => p.isAlive);
           if (targets.length > 0) {
             // IA Simplifiée : Tire sur un non-loup ou random
@@ -265,7 +261,7 @@ export default function DashboardScreen() {
             const rid = rnd.id;
 
             setHighlightedIds([rid]); // Highlight manuel ici
-            setTimeout(() => {
+            later(() => {
                 setHighlightedIds([]);
                 useGameStore.getState().pushToJournal(`🏹 Le Chasseur IA (${hunter.name}) a tiré sur ${rnd.name} !`, 'death');
                 useGameStore.getState().resolveHunterShot(rid);
@@ -288,9 +284,8 @@ export default function DashboardScreen() {
     if (phase === 'night' && nightStepIndex === -1) {
       const activeRoles  = new Set(players.filter(p => p.isAlive).map(p => p.roleId))
       const hasCupidon   = activeRoles.has('cupidon')
-      const hasWolves    = players.some(p =>
-        p.isAlive && isPlayerWolf(p, players, useGameStore.getState()) && p.roleId !== 'joueur-flute'
-      )
+      // Un Joueur de Flûte infecté est un loup à part entière : il se réveille avec la meute.
+      const hasWolves    = players.some(p => p.isAlive && isPlayerWolf(p, players, useGameStore.getState()))
       const loupsBlancs  = players.filter(p => p.isAlive && p.roleId === 'loup-blanc')
       const deadWolves   = players.filter(p => !p.isAlive && isPlayerWolf(p, players, useGameStore.getState()))
 
@@ -336,7 +331,7 @@ export default function DashboardScreen() {
         return false
       })
 
-      steps.push({ id: 'fin-nuit', isEnd: true, label: 'Le Soleil se Lève', instruction: 'Les actions de la nuit sont réglées. Cliquez ci-dessous pour annoncer les événements de la nuit au village.' })
+      steps.push({ id: 'fin-nuit', isEnd: true, label: 'Le Soleil se Lève', instruction: 'Les actions de la nuit sont réglées. Touchez le bouton ci-dessous pour annoncer les événements de la nuit au village.' })
 
       setActiveNightSteps(steps)
       setNightStepIndex(0)
@@ -518,6 +513,8 @@ export default function DashboardScreen() {
     } else if (currentNightStepId === 'voyante') {
       commitSeerObservation(selectedPlayer.id)
       setNightSelection([selectedPlayer.id])
+      // Montre directement la carte en plein écran : le MJ tourne la tablette vers la Voyante.
+      setRevealRoleId(selectedPlayer.roleId)
     } else if (currentNightStepId === 'loup-simple') {
       commitWolvesVictim(selectedPlayer.id)
       setNightSelection([selectedPlayer.id])
@@ -576,7 +573,11 @@ export default function DashboardScreen() {
 
   const advanceNightPhase = () => {
     useGameStore.getState().saveHistory()
-    const { pushToJournal } = useGameStore.getState();
+    // Lecture de l'état À JOUR du store (et non des valeurs capturées au rendu) :
+    // advanceNightPhase est souvent appelé juste après un commit dans le même
+    // gestionnaire (ex. Sorcière : commitWitchLife puis avancer), et les valeurs
+    // du rendu seraient alors périmées (le soin n'était pas consigné au journal).
+    const { pushToJournal, nightActions, charmedIds, lovers, wildChildModelId } = useGameStore.getState();
 
     if (currentNightStepId === 'cupidon') {
       if (nightSelection.length === 2) {
@@ -720,7 +721,7 @@ export default function DashboardScreen() {
           <span aria-hidden="true">{pm.icon}</span>{pm.label}
         </div>
 
-        <span className="header-day">Jour&nbsp;{dayNumber}</span>
+        {phase !== 'preparation' && <span className="header-day">Jour&nbsp;{dayNumber}</span>}
         <div className="header-spacer" />
 
         <div className="header-actions">
@@ -731,18 +732,12 @@ export default function DashboardScreen() {
             <>
               {phase === 'day' && (
                 <>
-                  {!tribunalLocked && (
-                    <span className="header-disabled-hint" role="status">
-                      Votez et condamnez un joueur pour pouvoir endormir le village
-                    </span>
-                  )}
                   <button
                     id="btn-phase-toggle"
                     className="header-btn primary-action"
                     onClick={handlePhaseToggle}
                     disabled={!tribunalLocked}
                     title={!tribunalLocked ? "Le village doit d'abord voter et condamner un joueur avant de s'endormir." : "Passer à la nuit"}
-                    style={!tribunalLocked ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                   >
                     <span aria-hidden="true">🌙</span> Endormir le Village
                   </button>
@@ -825,70 +820,23 @@ export default function DashboardScreen() {
             <div className="sidebar-section-title">📋 Joueurs &amp; Rôles</div>
             {players.map(p => {
               const role = ROLE_BY_ID[p.roleId]
-              const isEditing = editingPlayerId === p.id && editSource === 'sidebar'
               return (
-                <div key={p.id} className={`role-list-item${!p.isAlive ? ' dead' : ''}`} style={{ alignItems: 'center' }}>
-                  {isEditing ? (
-                    <input
-                      ref={renameInputRef}
-                      type="text"
-                      value={editNameValue}
-                      onChange={(e) => {
-                        editNameValueRef.current = e.target.value
-                        setEditNameValue(e.target.value)
-                      }}
-                      onBlur={() => finishEditing(p.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { e.preventDefault(); finishEditing(p.id) }
-                        if (e.key === 'Escape') {
-                          e.preventDefault()
-                          setEditingPlayerId(null)
-                          editNameValueRef.current = ''
-                        }
-                      }}
-                      maxLength={20}
-                      style={{
-                        background: 'var(--color-input-bg)',
-                        color: '#fff',
-                        border: '1px solid rgba(232, 180, 249, 0.7)',
-                        borderRadius: '6px',
-                        padding: '3px 8px',
-                        fontSize: '0.85rem',
-                        flex: 1,
-                        minWidth: 0,
-                        outline: 'none',
-                        boxShadow: '0 0 0 2px rgba(232, 180, 249, 0.3)',
-                      }}
-                    />
-                  ) : (
-                    <span className="role-list-name" style={{ display: 'flex', alignItems: 'center', gap: '3px', flex: 1, minWidth: 0 }}>
-                      {p.isPlush && <span aria-hidden="true">🐾</span>}
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      {(p.isInfected || nightActions.infectedTargetId === p.id) && <span title="Infecté" style={{ fontSize: '1em', flexShrink: 0 }}>☣️</span>}
-                      {p.isAlive && (
-                        <button
-                          title="Modifier le nom"
-                          aria-label={`Modifier le nom de ${p.name}`}
-                          onClick={(e) => { e.stopPropagation(); startEditing(p) }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            padding: '1px 3px',
-                            opacity: 0.5,
-                            lineHeight: 1,
-                            flexShrink: 0,
-                            transition: 'opacity 0.15s',
-                          }}
-                          className="rename-pencil-sidebar"
-                        >
-                          ✏️
-                        </button>
-                      )}
+                <div key={p.id} className={`role-list-item${!p.isAlive ? ' dead' : ''}`}>
+                  <span className="role-list-token"><RoleToken roleId={p.roleId} variant="medallion" alt="" /></span>
+                  <span className="role-list-text">
+                    <span className="role-list-name">
+                      {p.isPlush && <span aria-hidden="true">🧸</span>}
+                      <span className="role-list-name__label">{p.name}</span>
+                      {(p.isInfected || nightActions.infectedTargetId === p.id) && <span title="Infecté">☣️</span>}
                     </span>
-                  )}
-                  <span className="role-list-role" style={{ flexShrink: 0 }}>{role?.icon} {role?.name ?? '?'}</span>
+                    <span className="role-list-role">{role?.name ?? '?'}</span>
+                  </span>
+                  <button
+                    className="rename-pencil-sidebar"
+                    title="Modifier le nom"
+                    aria-label={`Modifier le nom de ${p.name}`}
+                    onClick={(e) => { e.stopPropagation(); openRename(p) }}
+                  >✏️</button>
                 </div>
               )
             })}
@@ -934,6 +882,7 @@ export default function DashboardScreen() {
           <PlayerCircle
             players={players}
             dims={dims}
+            phase={phase}
             nightSelection={nightSelection}
             nightActions={nightActions}
             lovers={lovers}
@@ -947,16 +896,6 @@ export default function DashboardScreen() {
             chevalierContaminatedWolfId={chevalierContaminatedWolfId}
             chienLoupSide={chienLoupSide}
             ancienLives={ancienLives}
-            editingPlayerId={editingPlayerId}
-            editSource={editSource}
-            editNameValue={editNameValue}
-            editNameValueRef={editNameValueRef}
-            renameInputRef={renameInputRef}
-            startEditing={startEditing}
-            finishEditing={finishEditing}
-            setEditingPlayerId={setEditingPlayerId}
-            setEditSource={setEditSource}
-            setEditNameValue={setEditNameValue}
             handleAvatar={handleAvatar}
             handleDragStart={handleDragStart}
             handleDragOver={handleDragOver}
@@ -969,7 +908,7 @@ export default function DashboardScreen() {
               {selectedId ? (
                 <p style={{marginBottom: 20, color: 'var(--color-accent-ai)', fontWeight: 'bold'}}>
                   ✦ <strong>{players.find(p => p.id === selectedId)?.name}</strong> sélectionné(e) —
-                  cliquez sur un autre joueur pour intervertir leur place.
+                  touchez un autre joueur pour intervertir leurs places.
                   <button
                     onClick={() => setSelectedId(null)}
                     style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '0.85rem' }}
@@ -978,7 +917,7 @@ export default function DashboardScreen() {
                 </p>
               ) : (
                 <p style={{marginBottom: 20}}>
-                  👆 Cliquez sur un joueur, puis sur un autre pour <strong>intervertir leur place</strong> dans le cercle. Quand tout est prêt, lancez la partie !
+                  👆 Touchez un joueur, puis un autre pour <strong>intervertir leurs places</strong> dans le cercle. Quand tout est prêt, lancez la partie !
                 </p>
               )}
               <button className="btn-launch-night" style={{ alignSelf: 'center' }} onClick={handlePhaseToggle}>
@@ -996,6 +935,7 @@ export default function DashboardScreen() {
               advanceNightPhase={advanceNightPhase}
               handlePhaseToggle={handlePhaseToggle}
               isProcessingAction={isProcessingAction}
+              onReveal={openReveal}
             />
           )}
 
@@ -1017,7 +957,8 @@ export default function DashboardScreen() {
             handleEliminate={handleEliminate}
             setCaptain={setCaptain}
             setSelectedId={setSelectedId}
-            startEditing={startEditing}
+            onRename={openRename}
+            onReveal={openReveal}
           />
 
           {/* MODALE CHASSEUR - Déclenche au moment de sa mort */}
@@ -1051,14 +992,22 @@ export default function DashboardScreen() {
           <div className="sidebar-inner">
           <div className="journal-header">
             <div className="journal-title">📖 Chronique du Village</div>
-            {pastStates?.length > 0 && (
-              <button className="header-btn" style={{padding: '4px 8px', fontSize: '0.8rem'}} onClick={undoAction}>
-                ↩ Annuler
-              </button>
-            )}
+            <div className="journal-tools">
+              <button
+                className={`journal-tool${showGuidanceInJournal ? ' on' : ''}`}
+                onClick={() => setShowGuidanceInJournal(v => !v)}
+                aria-pressed={showGuidanceInJournal}
+                title={showGuidanceInJournal ? 'Masquer les consignes du MJ' : 'Afficher les consignes du MJ'}
+              >💡</button>
+              {pastStates?.length > 0 && (
+                <button className="journal-tool" onClick={undoAction} title="Annuler la dernière action">
+                  ↩ Annuler
+                </button>
+              )}
+            </div>
           </div>
           <div ref={journalRef} className="journal-entries" role="log" aria-live="polite">
-            {journal.map(entry => (
+            {journal.filter(entry => showGuidanceInJournal || entry.type !== 'guidance').map(entry => (
               <div key={entry.id} className={`journal-entry ${entry.type === 'guidance' ? 'guidance-entry' : ''}`}>
                 {entry.type === 'guidance' ? (
                   <span className="jicon-guidance" aria-hidden="true">💡</span>
@@ -1109,7 +1058,21 @@ export default function DashboardScreen() {
       />
 
       {/* ── OVERLAY DE TRANSITION ────────────────────────── */}
-      <PhaseTransitionOverlay active={isTransitionActive} phase={transitionPhase} />
+      <PhaseTransitionOverlay active={isTransitionActive} phase={transitionPhase} onSkip={() => setIsTransitionActive(false)} />
+
+      {/* ── RENOMMAGE D'UN JOUEUR ────────────────────────── */}
+      {renamingPlayer && (
+        <RenameDialog
+          key={renamingPlayer.id}
+          player={renamingPlayer}
+          otherNames={players.filter(p => p.id !== renamingPlayer.id).map(p => p.name)}
+          onConfirm={confirmRename}
+          onCancel={closeRename}
+        />
+      )}
+
+      {/* ── CARTE EN PLEIN ÉCRAN (révélation au joueur réveillé) ── */}
+      <RoleReveal roleId={revealRoleId} onClose={closeReveal} />
 
       {/* ── MODALE APRES SAUVEGARDE ────────────────── */}
       <SaveModal

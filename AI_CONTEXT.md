@@ -14,7 +14,7 @@ Le projet est bâti sur une stack moderne et légère :
 - **Framework :** React 19 (avec Vite et support PWA)
 - **Gestion d'état :** Zustand
 - **Routage :** React Router v7 (utilisation minimale)
-- **Styles :** CSS pur et personnalisé, dans une esthétique dark mode premium et immersive (effets de halo violet/doré, animations fluides).
+- **Styles :** CSS pur. Direction artistique tirée du livret « Best Of » : nuit bleu-ardoise, parchemin, rouille, ocre, silhouette du village ; titres en *IM Fell English SC*. Tokens dans `src/index.css` (`--color-parchment`, `--color-ink`, `--color-rust`…), surcharge du Dashboard dans `DashboardTheme.css`.
 
 ### Structure des Dossiers
 - `/src`
@@ -25,7 +25,12 @@ Le projet est bâti sur une stack moderne et légère :
     - `/DashboardScreen` : Écran principal du MJ. Affiche le cercle des joueurs, la carte de l'étape nocturne en cours, les boutons d'actions et le journal (Chronique du Village).
   - `/components`
     - `/RulesModal` : Grimoire des règles interactif.
-    - `/ErrorBoundary` : Catch des erreurs inattendues de rendu.
+    - `/ErrorBoundary` : Catch des erreurs de rendu, avec reprise sans perte de partie.
+    - `/RoleToken` : jeton illustré d'un rôle (`token` complet ou `medallion` rogné en cercle).
+    - `/RoleReveal` : carte d'un joueur en plein écran (le MJ tourne la tablette vers le joueur réveillé).
+    - `/RenameDialog` : renommage d'un joueur en cours de partie (unique point d'entrée).
+  - `/data/roleArt.js` : correspondance rôle → illustration (`src/assets/roles/*.webp`, extraites du livret de règles).
+  - `/assets/decor` : texture parchemin et silhouette du village (utilisée comme masque CSS).
   - `/services`
     - `scoringEngine.js` : Calcul des décisions IA (plushies).
   - `index.css` : Styles globaux et variables de thème.
@@ -39,7 +44,8 @@ Le projet est bâti sur une stack moderne et légère :
 - À partir de la 14ème peluche (index 13+), le nom est généré dynamiquement au format `"Peluche numéro X"` (où X est le numéro ordinal 1-based, ex: `Peluche numéro 14`).
 
 ### Bandeau de Guidage & Chronique
-- Le bandeau de guidage (`.guidance-banner` au centre supérieur du cercle de jeu) affiche des indications au MJ.
+- Le bandeau de guidage (`.guidance-banner`, en haut du cercle de jeu) affiche des indications au MJ.
+- Dans la Chronique, ces consignes archivées sont **masquées par défaut** (bouton 💡 pour les afficher).
 - **Persistance :** Le bandeau reste affiché jusqu'à ce que le MJ clique dessus pour le fermer.
 - **Logique d'Archivage :** 
   - Lorsque le bandeau est fermé ou que l'étape change, le texte du bandeau est inséré dans le journal de la Chronique sous le type `'guidance'`.
@@ -55,6 +61,20 @@ Le projet est bâti sur une stack moderne et légère :
 - Pour éviter un effet de boucle de rétroaction (feedback loop) où le positionnement des avatars distend la hauteur de la zone et relance le calcul, `.player-circle-zone` doit conserver des contraintes strictes : `height: 100%` et `min-height: 0` afin de s'aligner sur la grille sans s'étendre en fonction de son contenu absolute.
 
 ---
+
+### Saisie sur tablette (règles impératives)
+- Tout champ de saisie (`input`, `select`) doit avoir une police **≥ 16px** : en dessous, iOS zoome sur le champ et, l'app étant en `overflow: hidden`, l'interface reste décalée.
+- Hauteurs d'écran en `100dvh` (avec repli `100vh`) ; viewport `interactive-widget=resizes-content`.
+- Le focus d'un champ doit être posé **pendant le geste de l'utilisateur** (synchrone, `useLayoutEffect`), jamais dans un `setTimeout` : sinon le clavier ne s'ouvre pas sur iPad.
+- Pas de lookbehind `(?<!…)` dans les regex : non supporté par Safari < 16.4 (voir `replaceNameInJournal`).
+- Cibles tactiles ≥ 44px.
+
+### Révélation des cartes
+- Bouton « 🃏 Montrer la carte » dans le panneau du joueur sélectionné (hors préparation).
+- Étape Voyante : désigner un joueur ouvre directement sa carte en plein écran ; un bouton permet de la remontrer.
+
+### Noms des joueurs
+- Les doublons (insensibles à la casse) sont refusés : bloquants à la configuration, refusés au renommage (store + UI).
 
 ## 4. Commandes Utiles
 - **Lancer en local :** `npm run dev` (s'ouvre par défaut sur `http://localhost:5173/loup_garou/`)

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGameStore, ROLE_CATALOG, DEFAULT_PLUSH_NAMES, DEFAULT_HUMAN_NAMES } from '../../store/useGameStore'
+import { useGameStore, ROLE_CATALOG, DEFAULT_PLUSH_NAMES } from '../../store/useGameStore'
+import NameField from './NameField'
+import RoleToken from '../../components/RoleToken/RoleToken'
 import './SetupScreen.css'
 
 /* ─── Groupement des rôles par équipe ──────────────────────── */
@@ -12,11 +14,18 @@ const TEAM_META = {
   solitaire: { label: 'Solitaires',   icon: '⭐' },
 }
 
+/* ─── Noms effectifs (identiques aux replis de startGame) ─────── */
+const defaultPlushName = (i) => DEFAULT_PLUSH_NAMES[i] ?? `Peluche numéro ${i + 1}`
+const normalize = (n) => n.trim().toLocaleLowerCase('fr')
+const effectiveHumanName = (name, i) => normalize(name ?? '') || normalize(`Joueur ${i + 1}`)
+const effectivePlushName = (name, i) => normalize(name ?? '') || normalize(defaultPlushName(i))
+
 /* ─── Composant principal ───────────────────────────────────── */
 export default function SetupScreen() {
   const navigate = useNavigate()
   const [savedGames, setSavedGames] = useState([])
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState(null) // suppression en 2 temps
 
   const {
     humanCount, setHumanCount,
@@ -34,7 +43,18 @@ export default function SetupScreen() {
 
   const totalRoles   = getTotalRoles()
   const totalPlayers = getTotalPlayers()
-  const ready        = isReadyToStart()
+
+  // Noms tels qu'ils seront réellement attribués (mêmes règles de repli que startGame)
+  // afin de détecter les doublons, source d'ambiguïté dans les votes et le journal.
+  const allEffectiveNames = [
+    ...humanNames.map(effectiveHumanName),
+    ...plushNames.map(effectivePlushName),
+  ]
+  const duplicateNames = new Set(
+    allEffectiveNames.filter((n, i) => allEffectiveNames.indexOf(n) !== i)
+  )
+  const hasDuplicates = duplicateNames.size > 0
+  const ready        = isReadyToStart() && !hasDuplicates
 
   const hasActiveGame = players && players.length > 0 && phase !== 'setup'
 
@@ -94,7 +114,9 @@ export default function SetupScreen() {
   }
 
   const handleDeleteSave = (id) => {
+    if (pendingDeleteId !== id) { setPendingDeleteId(id); return }
     deleteSavedGameFromLocalStorage(id)
+    setPendingDeleteId(null)
     loadSavedGames()
   }
 
@@ -197,47 +219,21 @@ export default function SetupScreen() {
             {humanCount > 0 && (
               <div className="player-names-list" role="group" aria-label="Noms des joueurs humains">
                 {humanNames.map((name, i) => (
-                  <div className="name-input-row" key={`h-${i}`}>
-                    <label className="name-input-label" htmlFor={`human-name-${i}`}>
-                      Joueur {i + 1}
-                    </label>
-                    <div className="input-with-clear">
-                      <input
-                        id={`human-name-${i}`}
-                        className="name-input"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setHumanName(i, e.target.value)}
-                        placeholder={`Prénom du joueur ${i + 1}`}
-                        maxLength={20}
-                        autoComplete="off"
-                        list="human-suggestions"
-                        aria-label={`Nom du joueur humain ${i + 1}`}
-                      />
-                      {name && (
-                        <button
-                          className="btn-clear-input"
-                          onClick={() => setHumanName(i, '')}
-                          aria-label="Effacer le nom"
-                          title="Effacer le nom"
-                        >
-                          ✖
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <NameField
+                    key={`h-${i}`}
+                    id={`human-name-${i}`}
+                    nextId={i + 1 < humanCount ? `human-name-${i + 1}` : null}
+                    label={`Joueur ${i + 1}`}
+                    value={name}
+                    placeholder={`Joueur ${i + 1}`}
+                    onChange={(v) => setHumanName(i, v)}
+                    isDuplicate={duplicateNames.has(effectiveHumanName(name, i))}
+                  />
                 ))}
               </div>
             )}
           </div>
         </div>
-
-        {/* Datalist pour autocomplétion des humains */}
-        <datalist id="human-suggestions">
-          {DEFAULT_HUMAN_NAMES.map((name, idx) => (
-            <option key={idx} value={name} />
-          ))}
-        </datalist>
 
         {/* ──── Footer : résumé + CTA ──── */}
         <div className="setup-footer">
@@ -253,6 +249,9 @@ export default function SetupScreen() {
                 }
               </span>
             )}
+            {hasDuplicates && (
+              <span className="mismatch">⚠ Deux joueurs portent le même nom</span>
+            )}
             {ready && (
               <span className="ready">✦ Prêt à démarrer !</span>
             )}
@@ -261,9 +260,8 @@ export default function SetupScreen() {
           {hasActiveGame && (
             <button
               id="btn-retourner-jeu"
-              className="btn-primary setup-cta"
+              className="btn-secondary setup-cta"
               onClick={() => navigate('/dashboard')}
-              style={{ marginBottom: '10px', background: 'var(--color-secondary)', color: 'var(--color-surface)' }}
             >
               <span aria-hidden="true">▶️</span>
               Retourner à la partie en cours
@@ -273,9 +271,8 @@ export default function SetupScreen() {
           {savedGames.length > 0 && (
             <button
               id="btn-reprendre-chronique"
-              className="btn-secondary setup-cta"
+              className="btn-ghost setup-cta"
               onClick={() => setIsResumeModalOpen(true)}
-              style={{ marginBottom: '10px' }}
             >
               <span aria-hidden="true">📂</span>
               Reprendre une partie sauvegardée
@@ -299,7 +296,7 @@ export default function SetupScreen() {
           ZONE CENTRALE — Grille des Rôles
       ══════════════════════════════════════════ */}
       <main className="setup-roles-zone" aria-label="Sélection des rôles">
-        <div className="roles-zone-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="roles-zone-header">
           <div>
             <h2>Choix des Rôles</h2>
             <p>Sélectionnez les personnages qui peupleront votre chronique.</p>
@@ -388,52 +385,27 @@ export default function SetupScreen() {
             {plushCount > 0 && (
               <div className="player-names-list" role="group" aria-label="Noms des peluches">
                 {plushNames.map((name, i) => (
-                  <div className="name-input-row" key={`p-${i}`}>
-                    <label className="name-input-label" htmlFor={`plush-name-${i}`}>
-                      Peluche {i + 1}
-                    </label>
-                    <div className="input-with-clear">
-                      <input
-                        id={`plush-name-${i}`}
-                        className="name-input plush"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setPlushName(i, e.target.value)}
-                        placeholder="Nom de la peluche"
-                        maxLength={20}
-                        autoComplete="off"
-                        list="plush-suggestions"
-                        aria-label={`Nom de la peluche ${i + 1}`}
-                      />
-                      {name && (
-                        <button
-                          className="btn-clear-input"
-                          onClick={() => setPlushName(i, '')}
-                          aria-label="Effacer le nom"
-                          title="Effacer le nom"
-                        >
-                          ✖
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <NameField
+                    key={`p-${i}`}
+                    id={`plush-name-${i}`}
+                    nextId={i + 1 < plushCount ? `plush-name-${i + 1}` : null}
+                    label={`Peluche ${i + 1}`}
+                    value={name}
+                    placeholder={defaultPlushName(i)}
+                    onChange={(v) => setPlushName(i, v)}
+                    isDuplicate={duplicateNames.has(effectivePlushName(name, i))}
+                    variant="plush"
+                  />
                 ))}
               </div>
             )}
           </div>
         </div>
-
-        {/* Datalist pour autocomplétion des peluches */}
-        <datalist id="plush-suggestions">
-          {DEFAULT_PLUSH_NAMES.map((name, idx) => (
-            <option key={idx} value={name} />
-          ))}
-        </datalist>
       </aside>
 
       {/* ── MODALE SÉLECTEUR DE SAUVEGARDES ── */}
       {isResumeModalOpen && (
-        <div className="setup-modal-overlay" onClick={() => setIsResumeModalOpen(false)}>
+        <div className="setup-modal-overlay" onClick={() => { setIsResumeModalOpen(false); setPendingDeleteId(null) }}>
           <div className="setup-modal" onClick={e => e.stopPropagation()}>
             <div className="setup-modal-header">
               <h2>Parties Sauvegardées</h2>
@@ -456,11 +428,11 @@ export default function SetupScreen() {
                         Charger
                       </button>
                       <button
-                        className="btn-delete-save"
+                        className={`btn-delete-save${pendingDeleteId === game.id ? ' confirm' : ''}`}
                         onClick={() => handleDeleteSave(game.id)}
-                        title="Supprimer la sauvegarde"
+                        aria-label={pendingDeleteId === game.id ? 'Confirmer la suppression' : 'Supprimer la sauvegarde'}
                       >
-                        🗑️
+                        {pendingDeleteId === game.id ? 'Confirmer ?' : '🗑️'}
                       </button>
                     </div>
                   </div>
@@ -484,7 +456,10 @@ function RoleCard({ role, qty, onDecrement, onIncrement, hint }) {
       role="group"
       aria-label={`${role.name}, ${qty} sélectionné${qty > 1 ? 's' : ''} sur ${role.maxQty} maximum`}
     >
-      <div className="role-card__icon" aria-hidden="true">{role.icon}</div>
+      <div className="role-card__art" aria-hidden="true">
+        <RoleToken roleId={role.id} />
+        {qty > 1 && <span className="role-card__count">×{qty}</span>}
+      </div>
 
       <div className="role-card__name">{role.name}</div>
 
@@ -517,7 +492,7 @@ function RoleCard({ role, qty, onDecrement, onIncrement, hint }) {
       </div>
 
       {hint && (
-        <div className="role-card__hint" style={{ fontSize: '0.65rem', color: '#a78bfa', marginTop: 4, textAlign: 'center', fontStyle: 'italic' }}>
+        <div className="role-card__hint">
           {hint}
         </div>
       )}

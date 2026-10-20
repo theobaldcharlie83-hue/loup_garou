@@ -1,0 +1,508 @@
+/* ════════════════════════════════════════════════════════════════
+   THÈME « LIVRET » — direction artistique du Best Of
+   (nuit bleu-ardoise, parchemin, rouille, silhouettes d'encre).
+   Importé APRÈS DashboardScreen.css : surcharge les styles historiques.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Accents de phase ── */
+.dashboard-screen.phase-night,
+.dashboard-screen.phase-preparation { --phase-accent: var(--color-parchment); --phase-glow: rgba(240, 217, 168, 0.22); }
+.dashboard-screen.phase-day         { --phase-accent: var(--color-ochre);     --phase-glow: rgba(227, 154, 53, 0.3); }
+
+/* ── En-tête ── */
+.dashboard-header {
+  background: linear-gradient(180deg, #0d1118, var(--color-surface-container-low));
+  border-bottom: 1px solid rgba(240, 217, 168, 0.12);
+  padding-left: max(var(--space-5), env(safe-area-inset-left));
+  padding-right: max(var(--space-5), env(safe-area-inset-right));
+}
+.header-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  color: var(--color-parchment);
+  letter-spacing: 0.03em;
+}
+.header-day { font-family: var(--font-display); color: var(--color-on-surface-variant); }
+.header-btn { min-height: 44px; }
+.header-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.header-btn.primary-action { color: var(--color-ink); }
+
+/* ── Colonnes & poignées de repli (cibles tactiles plus larges) ── */
+.dashboard-content                                { grid-template-columns: 280px 1fr 280px; }
+.dashboard-content.left-collapsed                 { grid-template-columns: 36px 1fr 280px; }
+.dashboard-content.right-collapsed                { grid-template-columns: 280px 1fr 36px; }
+.dashboard-content.left-collapsed.right-collapsed { grid-template-columns: 36px 1fr 36px; }
+.sidebar-toggle { width: 32px; height: 88px; font-size: 1.4rem; }
+.sidebar-section-title { color: var(--color-parchment); opacity: 0.75; }
+
+/* ── Liste Joueurs & Rôles ── */
+.role-list-item {
+  display: grid;
+  grid-template-columns: 34px 1fr 40px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px;
+  border-radius: 10px;
+}
+.role-list-token { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1px rgba(240, 217, 168, 0.25); }
+.role-list-item.dead .role-list-token { filter: grayscale(1) brightness(0.6); }
+.role-list-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.role-list-name { font-weight: 600; min-width: 0; }
+.role-list-name__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.role-list-role { font-size: 0.75rem; }
+.rename-pencil-sidebar {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 0.95rem;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.rename-pencil-sidebar:active { background: rgba(240, 217, 168, 0.12); opacity: 1; }
+
+/* ── Clairière au clair de lune + silhouette du village ── */
+.player-circle-zone {
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 48%, rgba(240, 217, 168, 0.07), transparent 70%),
+    radial-gradient(circle at 82% 12%, rgba(207, 224, 242, 0.10), transparent 18%),
+    linear-gradient(180deg, #0c1018 0%, #141b26 60%, #10151d 100%);
+}
+.phase-day .player-circle-zone {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 45%, rgba(255, 214, 150, 0.10), transparent 70%),
+    linear-gradient(180deg, #2a2219 0%, #1f2128 60%, #171a20 100%);
+}
+.player-circle-zone::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(50px, 11vh, 110px);
+  background: #07090d;
+  -webkit-mask: url('../../assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+          mask: url('../../assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Avatars : médaillons illustrés ── */
+.player-avatar { gap: 4px; -webkit-user-select: none; user-select: none; }
+.player-avatar:hover { transform: translate(-50%, -50%); }
+.player-avatar:active { transform: translate(-50%, -50%) scale(0.96); }
+.player-avatar.selected { transform: translate(-50%, -50%) scale(1.1); }
+.avatar-circle {
+  width: var(--av-size, 64px);
+  height: var(--av-size, 64px);
+  border-width: 3px;
+  padding: 0;
+  font-size: calc(var(--av-size, 64px) * 0.4);
+  background: #0b0e13;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+}
+.avatar-circle > .role-token--medallion { position: absolute; inset: 0; }
+.av-loup      { border-color: var(--color-rust-bright); background: #0b0e13; }
+.av-village   { border-color: var(--color-parchment-dark); background: #0b0e13; }
+.av-ambigu    { border-color: var(--color-moon); background: #0b0e13; }
+.av-solitaire { border-color: var(--color-gold); background: #0b0e13; }
+.player-avatar.selected .avatar-circle {
+  animation: none;
+  box-shadow: 0 0 0 4px rgba(240, 217, 168, 0.35), 0 0 28px rgba(240, 217, 168, 0.45);
+}
+.player-avatar.target .avatar-circle { box-shadow: 0 0 0 4px rgba(227, 154, 53, 0.6), 0 0 24px rgba(227, 154, 53, 0.5); border-color: var(--color-ochre); }
+.player-avatar.target-wolves .avatar-circle { box-shadow: 0 0 0 4px rgba(210, 81, 60, 0.7), 0 0 26px rgba(210, 81, 60, 0.6); border-color: var(--color-rust-bright); }
+.player-avatar.dead { opacity: 0.45; filter: grayscale(1); }
+.av-dead-overlay { background: rgba(7, 9, 13, 0.6); font-size: calc(var(--av-size, 64px) * 0.35); z-index: 3; }
+.av-plush-badge { z-index: 4; width: 22px; height: 22px; font-size: 0.75rem; background: var(--color-parchment); border-color: var(--color-ink); }
+.avatar-circle > div { z-index: 4; }
+.av-name {
+  font-size: 0.9rem;
+  max-width: calc(var(--av-size, 64px) + 64px);
+  color: var(--color-on-surface);
+  text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8);
+}
+.av-role {
+  font-size: 0.72rem;
+  max-width: calc(var(--av-size, 64px) + 64px);
+  color: var(--color-on-surface-variant);
+  text-shadow: 0 1px 3px #000;
+}
+.phase-preparation .player-avatar { cursor: pointer; }
+.phase-preparation .player-avatar.selected .avatar-circle {
+  outline: 3px dashed var(--color-parchment);
+  outline-offset: 5px;
+  animation: none;
+}
+
+/* ── Carte d'étape (reste sombre la nuit : n'éblouit pas la tablée) ── */
+.night-step-card {
+  background:
+    linear-gradient(180deg, rgba(240, 217, 168, 0.06), rgba(240, 217, 168, 0) 40%),
+    rgba(20, 26, 35, 0.96);
+  border: 1px solid rgba(240, 217, 168, 0.28);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  animation: stepIn 0.25s ease-out;
+  max-height: 80%;
+  overflow-y: auto;
+}
+@keyframes stepIn {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+.night-step-card h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--color-parchment);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+.step-head { display: flex; align-items: center; gap: var(--space-3); text-align: left; }
+.step-head__token { width: 64px; flex-shrink: 0; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+.step-head__text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.step-actors { display: flex; flex-wrap: wrap; gap: 6px; }
+.step-actor {
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.night-step-card .step-instruction {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-size: 0.98rem;
+  color: var(--color-on-surface-variant);
+  text-align: left;
+  border-left: 2px solid rgba(240, 217, 168, 0.3);
+  padding-left: 10px;
+}
+.night-step-btn {
+  min-height: 48px;
+  font-size: 1rem;
+  padding: 10px 22px;
+  background: linear-gradient(180deg, var(--color-parchment), var(--color-parchment-dark));
+  color: var(--color-ink);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.night-step-btn:hover { transform: none; }
+.night-step-btn:active:not(:disabled) { transform: scale(0.97); }
+.night-step-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.reveal-again-btn { align-self: center; }
+
+.step-info {
+  background: rgba(240, 217, 168, 0.06);
+  border: 1px solid rgba(240, 217, 168, 0.18);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.night-step-card .step-info p { color: var(--color-on-surface); font-size: 0.95rem; }
+.step-info--left { text-align: left; }
+.step-info--love { border-color: rgba(255, 143, 171, 0.4); background: rgba(255, 143, 171, 0.08); }
+.step-info--fox  { border-color: rgba(227, 154, 53, 0.4);  background: rgba(227, 154, 53, 0.08); }
+.night-step-card .step-info__muted { color: var(--color-on-surface-variant); font-size: 0.85rem; font-style: italic; }
+.night-step-card .step-info__danger { color: var(--color-error); font-weight: 700; }
+.night-step-card .step-info__highlight { color: #ffb3c6; font-weight: 700; font-size: 1.1rem; }
+.night-step-card .step-info__verdict { font-size: 1.25rem; font-weight: 800; }
+.night-step-card .step-info__verdict.is-wolf { color: var(--color-error); }
+.night-step-card .step-info__verdict.is-clear { color: #8fdc9a; }
+.night-step-card .step-info__title { font-weight: 700; }
+.step-info__list { margin: 0; padding-left: 18px; font-size: 0.95rem; }
+
+.ai-btn {
+  background: linear-gradient(180deg, #a9c8ea, var(--color-accent-ai)) !important;
+  color: #0e1a2a !important;
+  box-shadow: 0 4px 14px rgba(143, 180, 221, 0.3) !important;
+  animation: none;
+  min-height: 44px;
+}
+
+/* ── Bandeau de guidage (en haut, ne recouvre plus les avatars du centre) ── */
+.guidance-banner {
+  top: 12px;
+  /* left/right + marge auto : évite la largeur « rétrécie » de left:50% */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  transform: none;
+  background: rgba(14, 18, 25, 0.92);
+  border-color: rgba(240, 217, 168, 0.3);
+  color: var(--color-on-surface);
+  font-family: var(--font-headline);
+  font-size: 0.95rem;
+  padding: 10px 18px;
+  max-width: min(720px, 88%);
+  animation: guidanceDrop 0.35s ease-out;
+}
+.guidance-banner:hover { transform: none; }
+@keyframes guidanceDrop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Panneau d'actions du joueur sélectionné ── */
+.player-action-panel {
+  background: rgba(16, 21, 29, 0.96);
+  border: 1px solid rgba(240, 217, 168, 0.28);
+  white-space: normal;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: min(94%, 900px);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+.pap-token { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(240, 217, 168, 0.4); }
+.pap-name { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; color: var(--color-parchment); }
+.pap-btns { flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+.pap-btn { min-height: 44px; font-size: 0.92rem; }
+.pap-btn.reveal {
+  background: linear-gradient(180deg, var(--color-parchment), var(--color-parchment-dark));
+  color: var(--color-ink);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.pap-btn.ghost { background: transparent; color: var(--color-on-surface); border: 1px solid var(--color-outline-variant); }
+.pap-btn.captain { background: var(--color-gold); color: var(--color-ink); }
+.pap-btn.close-btn { width: 44px; height: 44px; }
+.pap-select {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+/* ── Modales Grimoire : encadrés parchemin du livret ── */
+.grimoire-modal {
+  background-color: var(--color-parchment);
+  background-image:
+    linear-gradient(rgba(255, 244, 220, 0.25), rgba(120, 80, 30, 0.12)),
+    url('../../assets/decor/parchment.webp');
+  background-size: auto, cover;
+  color: var(--color-ink);
+  border: 1px solid rgba(90, 55, 20, 0.45);
+  box-shadow: inset 0 0 0 4px rgba(255, 245, 225, 0.35), inset 0 0 40px rgba(120, 70, 20, 0.25), 0 24px 60px rgba(0, 0, 0, 0.7);
+  max-width: 440px;
+  padding: 26px 24px 22px;
+}
+.grimoire-modal h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; color: var(--color-rust); }
+.grimoire-modal p { color: rgba(43, 29, 20, 0.85); font-size: 0.95rem; }
+.grimoire-modal p strong { color: var(--color-rust); }
+.grimoire-modal-icon { filter: none; }
+.grimoire-modal-btn { min-height: 48px; font-size: 0.98rem; }
+.grimoire-modal-btn.confirm {
+  background: linear-gradient(180deg, var(--color-rust-bright), var(--color-rust));
+  color: #fff6e6;
+  box-shadow: 0 4px 14px rgba(120, 30, 20, 0.35);
+}
+.grimoire-modal-btn.cancel,
+.grimoire-modal-btn:not(.confirm):not(.ai) {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid rgba(43, 29, 20, 0.45);
+}
+.grimoire-modal-btn.ai { background: #22324a; color: #dbe9f8; border: none; }
+.grimoire-modal-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+/* ── Modale de la Sorcière ── */
+.witch-modal { max-width: 560px; text-align: left; }
+.witch-header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.witch-header h2 { margin: 0; }
+.witch-header__token { width: 76px; flex-shrink: 0; filter: drop-shadow(0 4px 8px rgba(60, 30, 10, 0.4)); }
+.witch-header__who { font-size: 1.15rem; color: var(--color-ink); }
+.witch-header__who strong { color: var(--color-rust); font-size: 1.3rem; }
+.witch-potion-section { background: rgba(255, 250, 238, 0.55); border: 1px solid rgba(90, 55, 20, 0.25); }
+.witch-potion-section.disabled { background: rgba(90, 55, 20, 0.08); }
+.witch-potion-title { color: var(--color-ink); font-size: 1rem; font-weight: 700; }
+.witch-potion-detail { font-size: 0.95rem; color: var(--color-ink); margin: 0; }
+.witch-used { color: var(--color-rust); font-size: 0.85rem; font-weight: 600; }
+.witch-hint { color: rgba(43, 29, 20, 0.6); font-size: 0.8rem; font-style: italic; }
+.witch-toggle {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 2px dashed rgba(63, 107, 69, 0.7);
+  background: transparent;
+  color: var(--color-forest);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.witch-toggle.on { background: var(--color-forest); color: #fff6e6; border-style: solid; }
+.witch-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  max-height: 32vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+.witch-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 55, 20, 0.3);
+  background: rgba(255, 250, 238, 0.7);
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-align: left;
+}
+.witch-target.on { background: var(--color-rust); color: #fff6e6; border-color: var(--color-rust); box-shadow: 0 0 0 3px rgba(168, 50, 36, 0.25); }
+.witch-target__token { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+.witch-target__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Succession du Capitaine ── */
+.succession-modal {
+  background-color: var(--color-parchment);
+  background-image: linear-gradient(rgba(255, 244, 220, 0.25), rgba(120, 80, 30, 0.12)), url('../../assets/decor/parchment.webp');
+  background-size: auto, cover;
+  border: 1px solid rgba(90, 55, 20, 0.45);
+  color: var(--color-ink);
+}
+.succession-modal h2 { font-family: var(--font-display); font-weight: 400; color: var(--color-rust); font-size: 1.6rem; }
+.succession-modal p { color: rgba(43, 29, 20, 0.85); }
+.succession-item { min-height: 48px; background: rgba(255, 250, 238, 0.7); border-color: rgba(90, 55, 20, 0.3); color: var(--color-ink); }
+.succession-item:hover { background: #fff8e8; border-color: var(--color-rust); transform: none; }
+.succession-item.random { background: transparent; border-color: var(--color-ink); }
+
+/* ── Victoire ── */
+.victory-overlay { background: rgba(4, 5, 8, 0.88); }
+.victory-card {
+  background-color: var(--color-parchment);
+  background-image: linear-gradient(rgba(255, 244, 220, 0.25), rgba(120, 80, 30, 0.12)), url('../../assets/decor/parchment.webp');
+  background-size: auto, cover;
+  border: 1px solid rgba(90, 55, 20, 0.45);
+  border-radius: 24px;
+  padding: 28px 32px;
+  max-width: 640px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: popIn 0.5s ease-out;
+}
+.victory-survivors { width: 100%; min-height: 0; }
+.victory-survivors ul { max-height: 30vh; overflow-y: auto; }
+.victory-token { width: clamp(90px, 18vh, 150px); margin: 0 auto 10px; filter: drop-shadow(0 10px 20px rgba(60, 30, 10, 0.45)); }
+.victory-title { font-family: var(--font-display); font-weight: 400; color: var(--color-rust); text-shadow: none; font-size: 2.2rem; }
+.victory-subtitle { color: rgba(43, 29, 20, 0.7); }
+.victory-survivors { background: rgba(255, 250, 238, 0.55); border: 1px solid rgba(90, 55, 20, 0.25); }
+.victory-survivors h3 { color: var(--color-ink); font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; }
+.victory-survivors li { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.55); color: var(--color-ink); padding: 4px 12px 4px 4px; }
+.victory-survivors strong { color: var(--color-ink); }
+.victory-survivor-token { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
+.victory-cta { margin-top: 24px; min-width: 220px; }
+
+/* ── Transition jour / nuit ── */
+.phase-transition-overlay.active { cursor: pointer; }
+.phase-transition-overlay.to-night { background: radial-gradient(ellipse at 50% 35%, #1a2333 0%, #07090d 75%); }
+.phase-transition-overlay.to-day   { background: radial-gradient(ellipse at 50% 35%, #5a3b1c 0%, #140c06 75%); }
+.phase-transition-text {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--color-parchment);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: 0.03em;
+  text-align: center;
+  padding: 0 24px;
+}
+.phase-transition-village {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22vh;
+  background: #030406;
+  -webkit-mask: url('../../assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+          mask: url('../../assets/decor/village-silhouette.webp') bottom center / cover no-repeat;
+}
+
+/* ── Chronique ── */
+.journal-title { font-family: var(--font-display); font-style: normal; color: var(--color-parchment); font-size: 1.15rem; }
+.jtext { font-family: var(--font-headline); font-size: 0.95rem; }
+.jtext.narration { color: var(--color-parchment); }
+.jdot.narration { background: var(--color-parchment); }
+.journal-entry.guidance-entry { background: rgba(240, 217, 168, 0.06); border-left-color: rgba(240, 217, 168, 0.5); }
+.jtext.guidance { color: var(--color-on-surface-variant); font-style: italic; font-weight: 400; }
+
+/* ── Bouton « Lancer la partie » ── */
+.btn-launch-night {
+  background: linear-gradient(180deg, #2a3a55, #1a2436);
+  border: 1px solid rgba(240, 217, 168, 0.5);
+  color: var(--color-parchment);
+  font-family: var(--font-display);
+  font-weight: 400;
+  box-shadow: 0 0 22px rgba(207, 224, 242, 0.15);
+  min-height: 52px;
+}
+.btn-launch-night:hover { background: linear-gradient(180deg, #314466, #1f2b40); box-shadow: 0 0 28px rgba(207, 224, 242, 0.25); }
+
+/* ── Tablette ≤ 1024px (iPad paysage) : colonnes plus étroites ── */
+@media (max-width: 1024px) {
+  .dashboard-content                                { grid-template-columns: 240px 1fr 240px; }
+  .dashboard-content.left-collapsed                 { grid-template-columns: 36px 1fr 240px; }
+  .dashboard-content.right-collapsed                { grid-template-columns: 240px 1fr 36px; }
+  .dashboard-content.left-collapsed.right-collapsed { grid-template-columns: 36px 1fr 36px; }
+  .sidebar-inner { min-width: 210px; }
+  .header-disabled-hint { display: none; }
+  .header-title { font-size: 1.1rem; }
+  .av-name { font-size: 0.8rem; }
+  .av-role { font-size: 0.66rem; }
+}
+
+/* ── Correctif mise en page : l'en-tête ne doit jamais élargir la grille ── */
+.dashboard-screen { grid-template-columns: minmax(0, 1fr); }
+.dashboard-header { min-width: 0; overflow: hidden; gap: var(--space-3); }
+.header-actions { gap: var(--space-2); flex-shrink: 0; }
+
+/* ── Outils de la Chronique ── */
+.journal-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.journal-tools { display: flex; gap: 6px; }
+.journal-tool {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-outline-variant);
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.journal-tool.on { background: rgba(240, 217, 168, 0.15); border-color: rgba(240, 217, 168, 0.5); opacity: 1; }
+
+/* ── Tribunal : sélecteurs de vote (16px : pas de zoom iOS) ── */
+.vote-select {
+  font-family: var(--font-body);
+  font-size: 16px;
+  min-height: 44px;
+  width: 170px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 217, 168, 0.3);
+  background: var(--color-input-bg);
+  color: var(--color-on-surface);
+}

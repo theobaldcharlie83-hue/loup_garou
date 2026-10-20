@@ -1,6 +1,10 @@
-import { ROLE_BY_ID } from '../../../store/useGameStore'
+import RoleToken from '../../../components/RoleToken/RoleToken'
 
-/** Modale dédiée au tour de la Sorcière (potions de vie/mort + suggestion IA). */
+/**
+ * Modale dédiée au tour de la Sorcière (potions de vie/mort + suggestion IA).
+ * Affiche en tête QUI est la Sorcière (le MJ doit savoir qui réveiller),
+ * puis des choix tactiles (pas de <select> : peu pratique sur tablette).
+ */
 export default function WitchModal({
   show, players, nightActions, witchPotions,
   witchUseLife, setWitchUseLife, witchDeathTarget, setWitchDeathTarget,
@@ -8,115 +12,90 @@ export default function WitchModal({
 }) {
   if (!show) return null
 
+  const witch = players.find(p => p.roleId === 'sorciere')
+  const victim = players.find(p => p.id === nightActions.wolvesVictim)
+  const deathCandidates = players.filter(p => p.isAlive && p.roleId !== 'sorciere')
+  const canSave = witchPotions.life && !!victim
+  const hasAnyPotion = witchPotions.life || witchPotions.death
+
   return (
     <div className="grimoire-modal-overlay">
-      <div className="grimoire-modal" onClick={e => e.stopPropagation()}>
-        <div className="grimoire-modal-icon">🧙‍♀️</div>
-        <h2>Tour de la Sorcière</h2>
-        <p className="grimoire-modal-desc" style={{ color: 'var(--text-body-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
-          Étape dédiée pour préparer les potions de vie et de mort.
-        </p>
+      <div className="grimoire-modal witch-modal" role="dialog" aria-modal="true" aria-labelledby="witch-title" onClick={e => e.stopPropagation()}>
+        <header className="witch-header">
+          <span className="witch-header__token"><RoleToken roleId="sorciere" alt="" /></span>
+          <div>
+            <h2 id="witch-title">Tour de la Sorcière</h2>
+            <div className="witch-header__who">
+              Réveillez <strong>{witch?.name ?? '—'}</strong>{witch?.isPlush ? ' 🧸' : ''}
+              {witch && !witch.isAlive && <em> (éliminée cette nuit)</em>}
+            </div>
+          </div>
+        </header>
 
         <div className="witch-modal-body">
-          {/* SECTION POTION DE VIE */}
-          <div className={`witch-potion-section${!witchPotions.life ? ' disabled' : ''}`}>
+          {/* POTION DE VIE */}
+          <section className={`witch-potion-section${!witchPotions.life ? ' disabled' : ''}`}>
             <div className="witch-potion-header">
               <span className="witch-potion-title">💖 Potion de Vie</span>
-              {witchPotions.life ? (
-                <label className="switch-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={witchUseLife}
-                    onChange={(e) => {
-                      if (!nightActions.wolvesVictim) return;
-                      setWitchUseLife(e.target.checked);
-                    }}
-                    disabled={!nightActions.wolvesVictim}
-                  />
-                  <span>Sauver la victime</span>
-                </label>
-              ) : (
-                <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>Déjà utilisée</span>
-              )}
+              {!witchPotions.life && <span className="witch-used">Déjà utilisée</span>}
             </div>
-            <div className="witch-potion-detail" style={{ fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
-              {nightActions.wolvesVictim ? (
-                <span>
-                  Victime des Loups : <strong>{players.find(p => p.id === nightActions.wolvesVictim)?.name}</strong>
-                </span>
-              ) : (
-                <span>Aucune victime des loups ce soir.</span>
-              )}
-            </div>
-          </div>
+            <p className="witch-potion-detail">
+              {victim
+                ? <>Victime des Loups : <strong>{victim.name}</strong></>
+                : 'Aucune victime des Loups cette nuit.'}
+            </p>
+            {canSave && (
+              <button
+                type="button"
+                className={`witch-toggle${witchUseLife ? ' on' : ''}`}
+                aria-pressed={witchUseLife}
+                onClick={() => setWitchUseLife(!witchUseLife)}
+              >
+                {witchUseLife ? `✓ ${victim.name} sera sauvé(e)` : `Sauver ${victim.name}`}
+              </button>
+            )}
+          </section>
 
-          {/* SECTION POTION DE MORT */}
-          <div className={`witch-potion-section${!witchPotions.death ? ' disabled' : ''}`}>
+          {/* POTION DE MORT */}
+          <section className={`witch-potion-section${!witchPotions.death ? ' disabled' : ''}`}>
             <div className="witch-potion-header">
               <span className="witch-potion-title">☠️ Potion de Mort</span>
-              {!witchPotions.death && <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>Déjà utilisée</span>}
+              {!witchPotions.death
+                ? <span className="witch-used">Déjà utilisée</span>
+                : <span className="witch-hint">{witchDeathTarget ? 'Touchez à nouveau pour annuler' : 'Facultatif'}</span>}
             </div>
             {witchPotions.death && (
-              <select
-                className="witch-select"
-                value={witchDeathTarget}
-                onChange={(e) => setWitchDeathTarget(e.target.value)}
-              >
-                <option value="">-- Ne tuer personne --</option>
-                {players
-                  .filter(p => p.isAlive && p.roleId !== 'sorciere')
-                  .map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({ROLE_BY_ID[p.roleId]?.name})
-                    </option>
-                  ))}
-              </select>
+              <div className="witch-targets" role="group" aria-label="Cible de la potion de mort">
+                {deathCandidates.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`witch-target${witchDeathTarget === p.id ? ' on' : ''}`}
+                    aria-pressed={witchDeathTarget === p.id}
+                    onClick={() => setWitchDeathTarget(witchDeathTarget === p.id ? '' : p.id)}
+                  >
+                    <span className="witch-target__token"><RoleToken roleId={p.roleId} variant="medallion" alt="" /></span>
+                    <span className="witch-target__name">{p.name}</span>
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
+          </section>
         </div>
 
         <div className="grimoire-modal-actions">
-          {/* Bouton Suggestion IA */}
-          {players.some(p => p.roleId === 'sorciere' && p.isAlive) && (witchPotions.life || witchPotions.death) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
-              <button
-                className="grimoire-modal-btn"
-                style={{
-                  background: witchIaUsedForThisStep ? 'rgba(255, 255, 255, 0.05)' : 'rgba(167, 139, 250, 0.1)',
-                  border: witchIaUsedForThisStep ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed var(--color-accent-ai)',
-                  color: witchIaUsedForThisStep ? 'var(--color-muted)' : 'var(--color-accent-ai)',
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
-                  alignSelf: 'center',
-                  cursor: witchIaUsedForThisStep ? 'not-allowed' : 'pointer',
-                  borderRadius: '8px',
-                  width: 'auto'
-                }}
-                onClick={onWitchIaSelect}
-                disabled={witchIaUsedForThisStep}
-              >
-                🎲 Suggestion Sorcière IA
-              </button>
-              {witchIaUsedForThisStep && (
-                <div style={{ color: 'var(--color-accent-ai)', fontSize: '0.85rem', textAlign: 'center', marginTop: '4px' }}>
-                  🤖 Suggestion IA appliquée. (Vous pouvez modifier manuellement)
-                </div>
-              )}
-            </div>
+          {witch?.isPlush && witch.isAlive && hasAnyPotion && (
+            <button className="grimoire-modal-btn ai" onClick={onWitchIaSelect} disabled={witchIaUsedForThisStep}>
+              {witchIaUsedForThisStep ? '🤖 Suggestion IA appliquée (modifiable)' : '🎲 Suggestion Sorcière IA'}
+            </button>
           )}
 
-          <button
-            className="grimoire-modal-btn confirm"
-            onClick={onValidate}
-          >
-            🧙‍♀️ Valider les choix et continuer
+          <button className="grimoire-modal-btn confirm" onClick={onValidate}>
+            Valider et continuer
           </button>
 
           {pastStates?.length > 0 && (
-            <button
-              className="grimoire-modal-btn cancel"
-              onClick={undoAction}
-            >
+            <button className="grimoire-modal-btn cancel" onClick={undoAction}>
               ↩ Annuler l'action précédente
             </button>
           )}

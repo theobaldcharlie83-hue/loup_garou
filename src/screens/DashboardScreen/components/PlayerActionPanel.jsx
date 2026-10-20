@@ -1,4 +1,5 @@
 import { useGameStore, ROLE_BY_ID, isPlayerWolf } from '../../../store/useGameStore'
+import RoleToken from '../../../components/RoleToken/RoleToken'
 
 /**
  * Panneau flottant d'actions pour le joueur sélectionné : changement de rôle
@@ -7,7 +8,7 @@ import { useGameStore, ROLE_BY_ID, isPlayerWolf } from '../../../store/useGameSt
  */
 export default function PlayerActionPanel({
   selectedPlayer, currentNightStepId, nightSelection, handleNightActionSelect,
-  handleEliminate, setCaptain, setSelectedId, startEditing,
+  handleEliminate, setCaptain, setSelectedId, onRename, onReveal,
 }) {
   const { phase, players, wildChildModelId, chienLoupSide, captainId, charmedIds, nightActions } = useGameStore()
 
@@ -15,9 +16,10 @@ export default function PlayerActionPanel({
 
   return (
     <div className="player-action-panel" role="dialog">
+      <span className="pap-token"><RoleToken roleId={selectedPlayer.roleId} variant="medallion" alt="" /></span>
       <div className="pap-info">
         <div className="pap-name">
-          {selectedPlayer.isPlush && '🐾 '}{selectedPlayer.name}
+          {selectedPlayer.isPlush && '🧸 '}{selectedPlayer.name}
         </div>
         <div className="pap-role">
           {(() => {
@@ -26,7 +28,7 @@ export default function PlayerActionPanel({
             const isDogWolfLoup = selectedPlayer.roleId === 'chien-loup' && chienLoupSide === 'loup';
             const isDogWolfVillage = selectedPlayer.roleId === 'chien-loup' && chienLoupSide === 'village';
             const suffix = selectedPlayer.isInfected ? ' (Infecté 🐺)' : (isMutated ? ' (Muté 🐺)' : (isDogWolfLoup ? ' (Camp Loup 🐺)' : (isDogWolfVillage ? ' (Camp Village 🏘️)' : '')));
-            return (ROLE_BY_ID[selectedPlayer.roleId]?.icon ?? '❓') + ' ' + (ROLE_BY_ID[selectedPlayer.roleId]?.name ?? '?') + suffix;
+            return (ROLE_BY_ID[selectedPlayer.roleId]?.name ?? '?') + suffix;
           })()}
         </div>
       </div>
@@ -36,8 +38,7 @@ export default function PlayerActionPanel({
           <>
             {!selectedPlayer.isPlush && (
               <select
-                className="setup-input"
-                style={{ padding: '6px 12px', borderRadius: 20, border: 'none', background: 'var(--color-primary)', color: 'var(--color-input-bg)', fontWeight: 'bold', cursor: 'pointer' }}
+                className="pap-select"
                 onChange={(e) => {
                   if (e.target.value) {
                     useGameStore.getState().swapRoleSwap(selectedPlayer.id, e.target.value);
@@ -53,7 +54,7 @@ export default function PlayerActionPanel({
               </select>
             )}
             {selectedPlayer.isAlive && selectedPlayer.id !== captainId && (
-              <button className="pap-btn" style={{ background: 'var(--color-gold)', color: 'var(--color-on-primary)' }} onClick={() => { useGameStore.getState().saveHistory(); setCaptain(selectedPlayer.id); }}>
+              <button className="pap-btn captain" onClick={() => { useGameStore.getState().saveHistory(); setCaptain(selectedPlayer.id); }}>
                 🎖️  Désigner Capitaine
               </button>
             )}
@@ -76,7 +77,7 @@ export default function PlayerActionPanel({
             )}
             {currentNightStepId === 'voyante' && selectedPlayer.isAlive && selectedPlayer.roleId !== 'voyante' && !nightActions.seerSeen && (
               <button className="pap-btn see" onClick={() => handleNightActionSelect()}>
-                👁️ Joueur vu par la Voyante
+                🔮 Révéler sa carte à la Voyante
               </button>
             )}
             {currentNightStepId === 'loup-simple' && selectedPlayer.isAlive && !isPlayerWolf(selectedPlayer, players, useGameStore.getState()) && (
@@ -135,11 +136,16 @@ export default function PlayerActionPanel({
           </>
         )}
 
-        {/* Renommage — toujours accessible ici, pas seulement au double-clic/survol
-            (double-tap = zoom sur tablette, la cible tactile de l'app). */}
+        {/* Montrer la carte en plein écran (le MJ tourne la tablette vers le joueur) */}
+        {phase !== 'preparation' && (
+          <button className="pap-btn reveal" onClick={() => onReveal(selectedPlayer)} aria-label={`Montrer la carte de ${selectedPlayer.name}`}>
+            🃏 Montrer la carte
+          </button>
+        )}
+
         <button
-          className="pap-btn"
-          onClick={() => startEditing(selectedPlayer, 'avatar')}
+          className="pap-btn ghost"
+          onClick={() => onRename(selectedPlayer)}
           aria-label={`Renommer ${selectedPlayer.name}`}
         >
           ✏️ Renommer

@@ -11,6 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.png', 'favicon.ico', 'icon-192.png', 'icon-512.png', 'icons.svg'],
       workbox: {
+        // Précache aussi les illustrations (jetons de rôles, décors) pour le hors-ligne.
+        globPatterns: ['**/*.{js,css,html,webp,png,svg,ico}'],
         // Les polices Google (Newsreader, Plus Jakarta Sans) ne sont pas
         // servies depuis notre origine : sans ceci, l'app perd sa
         // typographie hors-ligne après le premier chargement.
@@ -40,8 +42,8 @@ export default defineConfig({
         name: 'Le Grimoire du Village',
         short_name: 'Le Grimoire',
         description: 'Assistant Meneur de Jeu – Loups-Garous de Thiercelieux',
-        theme_color: '#0e0e35',
-        background_color: '#0e0e35',
+        theme_color: '#121720',
+        background_color: '#121720',
         display: 'fullscreen',
         orientation: 'landscape',
         icons: [
